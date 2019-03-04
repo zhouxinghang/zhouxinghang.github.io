@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title><![CDATA[java内存模型]]></title>
+    <url>%2F2019%2F02%2F28%2Fjava%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%2F</url>
+    <content type="text"><![CDATA[基础现代计算机物理内存模型 访问局部性（英语：Locality of reference） 访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。 指令重排序指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。 指令重排序包括： 编译器优化重排序 指令级并行重排序 内存系统的重排序 as-if-serial无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义). 线程的 working memory是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分 Java 内存模型（Java Memory Model）Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节. happens-before 原则规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。 8大 happens-before 原则： 单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。 锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。 volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。 happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。 线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。 线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。 线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。 对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。 内存可见性共享变量实现可见性原理线程1对共享变量的修改对线程2可见，需要2个步骤： 将工作内存1中修改的共享变量刷新到主内存 将主内存最新的共享变量更新到工作内存2 synchronizedJMM 关于synchronized 的两条规定： 线程解锁前，刷新共享变量到主存 线程加锁前，获取主存中共享变量最新值到工作内存 volatile有内存栅栏（或内存屏障）和防止指令重排序 JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值） 参考https://www.jianshu.com/p/1508eedba54dhttps://www.jianshu.com/p/47f999a7c280http://ifeve.com/easy-happens-before/]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>jmm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[Java并发编程之美——相关总结]]></title>
+    <url>%2F2019%2F02%2F28%2FJava%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B9%8B%E7%BE%8E%E2%80%94%E2%80%94%E7%9B%B8%E5%85%B3%E6%80%BB%E7%BB%93%2F</url>
+    <content type="text"><![CDATA[伪共享在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。 cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据 当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。 当单个线程顺序访问同一个 cache 行的多个变量，利用程序运行局部性原理会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[Hello World]]></title>
+    <url>%2F2019%2F02%2F28%2Fhello-world%2F</url>
+    <content type="text"><![CDATA[Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick StartCreate a new post1$ hexo new "My New Post" More info: Writing Run server1$ hexo server More info: Server Generate static files1$ hexo generate More info: Generating Deploy to remote sites1$ hexo deploy More info: Deployment]]></content>
+      <tags>
+        <tag>java</tag>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+</search>
