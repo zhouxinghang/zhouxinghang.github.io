@@ -288,6 +288,193 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/2019/03/13/java常量池/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="海边捡贝壳">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ZBlog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/13/java常量池/" itemprop="url">java常量池</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-13T19:46:20+08:00">
+                2019-03-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">java基础</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/13/java常量池/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2019/03/13/java常量池/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <meta name="generator" content="Hexo 3.8.0"><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>{</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>{</span><br><span class="line">        String s = <span class="string">"helloword"</span>;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum <span class="number">3</span>a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">"HelloWord.java"</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line">  minor version: 0</span><br><span class="line">  major version: <span class="number">52</span></span><br><span class="line">  flags: ACC_PUBLIC, ACC_SUPER</span><br><span class="line">Constant pool:</span><br><span class="line">   #1 = Methodref          #4.#20         // java/lang/Object."<init>":()V</init></span><br><span class="line">   #2 = String             #21            // helloword</span><br><span class="line">   #3 = Class              #22            // com/zxh/study/test/HelloWord</span><br><span class="line">   #4 = Class              #23            // java/lang/Object</span><br><span class="line">   #5 = Utf8               <init></init></span><br><span class="line">   #6 = Utf8               ()V</span><br><span class="line">   #7 = Utf8               Code</span><br><span class="line">   #8 = Utf8               LineNumberTable</span><br><span class="line">   #9 = Utf8               LocalVariableTable</span><br><span class="line">  #10 = Utf8               this</span><br><span class="line">  #11 = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #12 = Utf8               main</span><br><span class="line">  #13 = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #14 = Utf8               args</span><br><span class="line">  #15 = Utf8               [Ljava/lang/String;</span><br><span class="line">  #16 = Utf8               s</span><br><span class="line">  #17 = Utf8               Ljava/lang/String;</span><br><span class="line">  #18 = Utf8               SourceFile</span><br><span class="line">  #19 = Utf8               HelloWord.java</span><br><span class="line">  #20 = NameAndType        #5:#6          // "<init>":()V</init></span><br><span class="line">  #21 = Utf8               helloword</span><br><span class="line">  #22 = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #23 = Utf8               java/lang/Object</span><br><span class="line">{</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         1: invokespecial #1                  // Method java/lang/Object."<init>":()V</init></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         0: ldc           #2                  // String helloword</span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
+</blockquote>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = "helloword"</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
+</ul>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869" target="_blank" rel="noopener">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html" target="_blank" rel="noopener">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/2019/03/12/AQS相关/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -393,7 +580,7 @@
           
             <meta name="generator" content="Hexo 3.8.0"><h2 id="AQS-简单介绍"><a href="#AQS-简单介绍" class="headerlink" title="AQS 简单介绍"></a>AQS 简单介绍</h2><p>AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。</p>
 <p>内部有一个 <strong>state 变量</strong>，用于表示一些状态信息，这个状态信息具体由实现类决定，比如一个 ReentrantLock 类这个 state 就表示获取锁的次数。</p>
-<p>内部维持两个队列，<strong>Sync Queue</strong> 和 <strong>Condition Queue</strong>，Sync Queue 是一个双线 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。</p>
+<p>内部维持两个队列，<strong>Sync Queue</strong> 和 <strong>Condition Queue</strong>，Sync Queue 是一个双向 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。</p>
 <p>这个类使用到了<strong>模板方法设计模式</strong>：定义一个操作中算法的骨架，而将一些步骤的实现延迟到子类中。</p>
 <h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><h3 id="AQS-类简单介绍"><a href="#AQS-类简单介绍" class="headerlink" title="AQS 类简单介绍"></a>AQS 类简单介绍</h3><p>先看一下 AQS 的类图</p>
 <p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/aqs.png" alt="AQS 类图"></p>
@@ -1558,7 +1745,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-count">7</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1569,7 +1756,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>

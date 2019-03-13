@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://zhouxinghang.github.io/2019/03/13/java%E5%B8%B8%E9%87%8F%E6%B1%A0/</loc>
+    <lastmod>2019-03-13</lastmod>
+  </url>  <url>
     <loc>https://zhouxinghang.github.io/2019/03/12/AQS%E7%9B%B8%E5%85%B3/</loc>
-    <lastmod>2019-03-12</lastmod>
+    <lastmod>2019-03-13</lastmod>
   </url>  <url>
     <loc>https://zhouxinghang.github.io/2019/03/05/java%E4%B8%AD%E7%9A%84%E9%94%81/</loc>
     <lastmod>2019-03-05</lastmod>

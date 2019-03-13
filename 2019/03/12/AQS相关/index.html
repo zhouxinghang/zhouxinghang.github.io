@@ -85,7 +85,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/lockCondition.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/lockSupport.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/WX20190312-112625@2x.png">
-<meta property="og:updated_time" content="2019-03-12T07:06:27.000Z">
+<meta property="og:updated_time" content="2019-03-13T11:46:55.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="AQS相关">
 <meta name="twitter:description" content="AQS 简单介绍AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。 内部有一个 state 变量，用于表示一些状态信息，这个状态信息具体由实现类决定，比如一个 ReentrantLock 类这个 state 就表示获取锁的次数。 内部维持两个队列，Sync Queue 和 Condition Queue，Sync Queu">
@@ -395,7 +395,7 @@
       
         <meta name="generator" content="Hexo 3.8.0"><h2 id="AQS-简单介绍"><a href="#AQS-简单介绍" class="headerlink" title="AQS 简单介绍"></a>AQS 简单介绍</h2><p>AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。</p>
 <p>内部有一个 <strong>state 变量</strong>，用于表示一些状态信息，这个状态信息具体由实现类决定，比如一个 ReentrantLock 类这个 state 就表示获取锁的次数。</p>
-<p>内部维持两个队列，<strong>Sync Queue</strong> 和 <strong>Condition Queue</strong>，Sync Queue 是一个双线 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。</p>
+<p>内部维持两个队列，<strong>Sync Queue</strong> 和 <strong>Condition Queue</strong>，Sync Queue 是一个双向 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。</p>
 <p>这个类使用到了<strong>模板方法设计模式</strong>：定义一个操作中算法的骨架，而将一些步骤的实现延迟到子类中。</p>
 <h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><h3 id="AQS-类简单介绍"><a href="#AQS-类简单介绍" class="headerlink" title="AQS 类简单介绍"></a>AQS 类简单介绍</h3><p>先看一下 AQS 的类图</p>
 <p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/aqs.png" alt="AQS 类图"></p>
@@ -578,6 +578,10 @@
 
           <div class="post-nav-prev post-nav-item">
             
+              <a href="/2019/03/13/java常量池/" rel="prev" title="java常量池">
+                java常量池 <i class="fa fa-chevron-right"></i>
+              </a>
+            
           </div>
         </div>
       
@@ -656,7 +660,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-count">7</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -667,7 +671,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>

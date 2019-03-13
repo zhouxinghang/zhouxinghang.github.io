@@ -62,7 +62,7 @@
 
 
 
-  <meta name="keywords" content="java,jvm,jmm,">
+  <meta name="keywords" content="jvm,">
 
 
 
@@ -73,20 +73,21 @@
 
 
 
-<meta name="description" content="基础现代计算机物理内存模型 访问局部性（英语：Locality of reference）  访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见">
-<meta name="keywords" content="java,jvm,jmm">
+<meta name="description" content="概述java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。 字符串常量池（String Pool）String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。 JVM 用一个哈希表记录对常量池的引用。 String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以">
+<meta name="keywords" content="jvm">
 <meta property="og:type" content="article">
-<meta property="og:title" content="java内存模型">
-<meta property="og:url" content="https://zhouxinghang.github.io/2019/02/28/java内存模型/index.html">
+<meta property="og:title" content="java常量池">
+<meta property="og:url" content="https://zhouxinghang.github.io/2019/03/13/java常量池/index.html">
 <meta property="og:site_name" content="ZBlog">
-<meta property="og:description" content="基础现代计算机物理内存模型 访问局部性（英语：Locality of reference）  访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见">
+<meta property="og:description" content="概述java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。 字符串常量池（String Pool）String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。 JVM 用一个哈希表记录对常量池的引用。 String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以">
 <meta property="og:locale" content="default">
-<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png">
-<meta property="og:updated_time" content="2019-03-01T03:21:54.000Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png">
+<meta property="og:updated_time" content="2019-03-13T12:02:00.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="java内存模型">
-<meta name="twitter:description" content="基础现代计算机物理内存模型 访问局部性（英语：Locality of reference）  访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png">
+<meta name="twitter:title" content="java常量池">
+<meta name="twitter:description" content="概述java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。 字符串常量池（String Pool）String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。 JVM 用一个哈希表记录对常量池的引用。 String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png">
 
 
 
@@ -116,13 +117,13 @@
 
 
 
-  <link rel="canonical" href="https://zhouxinghang.github.io/2019/02/28/java内存模型/">
+  <link rel="canonical" href="https://zhouxinghang.github.io/2019/03/13/java常量池/">
 
 
 
 
 
-  <title>java内存模型 | ZBlog</title>
+  <title>java常量池 | ZBlog</title>
   
 
 
@@ -291,7 +292,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/2019/02/28/java内存模型/">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/2019/03/13/java常量池/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="海边捡贝壳">
@@ -308,7 +309,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">java内存模型</h1>
+          <h1 class="post-title" itemprop="name headline">java常量池</h1>
         
 
         <div class="post-meta">
@@ -320,8 +321,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-02-28T23:10:47+08:00">
-                2019-02-28
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-13T19:46:20+08:00">
+                2019-03-13
               </time>
             
 
@@ -343,8 +344,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java进阶/" itemprop="url" rel="index">
-                    <span itemprop="name">java进阶</span>
+                  <a href="/categories/java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">java基础</span>
                   </a>
                 </span>
 
@@ -361,8 +362,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/02/28/java内存模型/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/2019/02/28/java内存模型/" itemprop="commentCount"></span>
+                <a href="/2019/03/13/java常量池/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2019/03/13/java常量池/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -390,46 +391,42 @@
       
 
       
-        <meta name="generator" content="Hexo 3.8.0"><h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
-<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
-<blockquote>
-<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+        <meta name="generator" content="Hexo 3.8.0"><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>{</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>{</span><br><span class="line">        String s = <span class="string">"helloword"</span>;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum <span class="number">3</span>a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">"HelloWord.java"</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line">  minor version: 0</span><br><span class="line">  major version: <span class="number">52</span></span><br><span class="line">  flags: ACC_PUBLIC, ACC_SUPER</span><br><span class="line">Constant pool:</span><br><span class="line">   #1 = Methodref          #4.#20         // java/lang/Object."<init>":()V</init></span><br><span class="line">   #2 = String             #21            // helloword</span><br><span class="line">   #3 = Class              #22            // com/zxh/study/test/HelloWord</span><br><span class="line">   #4 = Class              #23            // java/lang/Object</span><br><span class="line">   #5 = Utf8               <init></init></span><br><span class="line">   #6 = Utf8               ()V</span><br><span class="line">   #7 = Utf8               Code</span><br><span class="line">   #8 = Utf8               LineNumberTable</span><br><span class="line">   #9 = Utf8               LocalVariableTable</span><br><span class="line">  #10 = Utf8               this</span><br><span class="line">  #11 = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #12 = Utf8               main</span><br><span class="line">  #13 = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #14 = Utf8               args</span><br><span class="line">  #15 = Utf8               [Ljava/lang/String;</span><br><span class="line">  #16 = Utf8               s</span><br><span class="line">  #17 = Utf8               Ljava/lang/String;</span><br><span class="line">  #18 = Utf8               SourceFile</span><br><span class="line">  #19 = Utf8               HelloWord.java</span><br><span class="line">  #20 = NameAndType        #5:#6          // "<init>":()V</init></span><br><span class="line">  #21 = Utf8               helloword</span><br><span class="line">  #22 = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #23 = Utf8               java/lang/Object</span><br><span class="line">{</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         1: invokespecial #1                  // Method java/lang/Object."<init>":()V</init></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         0: ldc           #2                  // String helloword</span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
 </blockquote>
-<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
-<p>指令重排序包括：</p>
-<ul>
-<li>编译器优化重排序</li>
-<li>指令级并行重排序</li>
-<li>内存系统的重排序</li>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = "helloword"</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
 </ul>
-<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
-<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
-<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
-<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
-<p>8大 happens-before 原则：</p>
-<ul>
-<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
-<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
-<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
-<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
-<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
-<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
-<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
-<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
-</ul>
-<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
-<ul>
-<li>将工作内存1中修改的共享变量刷新到主内存</li>
-<li>将主内存最新的共享变量更新到工作内存2</li>
-</ul>
-<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
-<ul>
-<li>线程解锁前，刷新共享变量到主存</li>
-<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
-</ul>
-<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
-<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d" target="_blank" rel="noopener">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280" target="_blank" rel="noopener">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/" target="_blank" rel="noopener">http://ifeve.com/easy-happens-before/</a></p>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869" target="_blank" rel="noopener">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html" target="_blank" rel="noopener">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
 
       
     </div>
@@ -450,7 +447,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>Post link:</strong>
-    <a href="https://zhouxinghang.github.io/2019/02/28/java内存模型/" title="java内存模型">https://zhouxinghang.github.io/2019/02/28/java内存模型/</a>
+    <a href="https://zhouxinghang.github.io/2019/03/13/java常量池/" title="java常量池">https://zhouxinghang.github.io/2019/03/13/java常量池/</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice: </strong>
@@ -465,11 +462,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/java/" rel="tag"># java</a>
-          
             <a href="/tags/jvm/" rel="tag"># jvm</a>
-          
-            <a href="/tags/jmm/" rel="tag"># jmm</a>
           
         </div>
       
@@ -482,8 +475,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/02/28/Java并发编程之美——相关总结/" rel="next" title="Java并发编程之美——相关总结">
-                <i class="fa fa-chevron-left"></i> Java并发编程之美——相关总结
+              <a href="/2019/03/12/AQS相关/" rel="next" title="AQS相关">
+                <i class="fa fa-chevron-left"></i> AQS相关
               </a>
             
           </div>
@@ -491,10 +484,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2019/03/04/hexodeploy指定git账户/" rel="prev" title="hexo deploy 指定 git 账户">
-                hexo deploy 指定 git 账户 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -643,7 +632,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#基础"><span class="nav-number">1.</span> <span class="nav-text">基础</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#现代计算机物理内存模型"><span class="nav-number">1.1.</span> <span class="nav-text">现代计算机物理内存模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#指令重排序"><span class="nav-number">1.2.</span> <span class="nav-text">指令重排序</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#as-if-serial"><span class="nav-number">1.2.1.</span> <span class="nav-text">as-if-serial</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#线程的-working-memory"><span class="nav-number">1.2.2.</span> <span class="nav-text">线程的 working memory</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java-内存模型（Java-Memory-Model）"><span class="nav-number">2.</span> <span class="nav-text">Java 内存模型（Java Memory Model）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#happens-before-原则"><span class="nav-number">2.1.</span> <span class="nav-text">happens-before 原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存可见性"><span class="nav-number">2.2.</span> <span class="nav-text">内存可见性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#共享变量实现可见性原理"><span class="nav-number">2.2.1.</span> <span class="nav-text">共享变量实现可见性原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#synchronized"><span class="nav-number">2.2.2.</span> <span class="nav-text">synchronized</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#volatile"><span class="nav-number">2.2.3.</span> <span class="nav-text">volatile</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">3.</span> <span class="nav-text">参考</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#字符串常量池（String-Pool）"><span class="nav-number">2.</span> <span class="nav-text">字符串常量池（String Pool）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#常量池表（Constant-Pool-Table）"><span class="nav-number">3.</span> <span class="nav-text">常量池表（Constant Pool Table）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#字面量（literal）"><span class="nav-number">3.1.</span> <span class="nav-text">字面量（literal）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#符号引用（Symbolic-References）"><span class="nav-number">3.2.</span> <span class="nav-text">符号引用（Symbolic References）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#常量池表的作用"><span class="nav-number">3.3.</span> <span class="nav-text">常量池表的作用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行时常量池（Runtime-Constant-Pool）"><span class="nav-number">4.</span> <span class="nav-text">运行时常量池（Runtime Constant Pool）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么-Java-需要设计常量池，而-C-没有？"><span class="nav-number">5.</span> <span class="nav-text">为什么 Java 需要设计常量池，而 C 没有？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
             
 
           </div>
