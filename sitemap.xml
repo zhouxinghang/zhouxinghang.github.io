@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://zhouxinghang.github.io/threadLocal.html</loc>
+    
+    <lastmod>2019-03-20T12:31:49.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://zhouxinghang.github.io/false-sharing.html</loc>
     
     <lastmod>2019-03-13T12:14:26.000Z</lastmod>

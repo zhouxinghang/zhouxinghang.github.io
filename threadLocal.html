@@ -62,7 +62,7 @@
 
 
 
-  <meta name="keywords" content="jvm,">
+  <meta name="keywords" content="spring,threadlocal,">
 
 
 
@@ -73,21 +73,22 @@
 
 
 
-<meta name="description" content="概述java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。 字符串常量池（String Pool）String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。 JVM 用一个哈希表记录对常量池的引用。 String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以">
-<meta name="keywords" content="jvm">
+<meta name="description" content="目标总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal ThreadLocal提供线程本地变量，创建一个ThreadLocal需要及时销毁，不然会造成内存泄露。 先看下类图：  可知 Thread 类中有一个 threa">
+<meta name="keywords" content="spring,threadlocal">
 <meta property="og:type" content="article">
-<meta property="og:title" content="java常量池">
-<meta property="og:url" content="https://zhouxinghang.github.io/java-constant-pool.html">
+<meta property="og:title" content="ThreadLocal">
+<meta property="og:url" content="https://zhouxinghang.github.io/threadLocal.html">
 <meta property="og:site_name" content="ZBlog">
-<meta property="og:description" content="概述java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。 字符串常量池（String Pool）String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。 JVM 用一个哈希表记录对常量池的引用。 String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以">
+<meta property="og:description" content="目标总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal ThreadLocal提供线程本地变量，创建一个ThreadLocal需要及时销毁，不然会造成内存泄露。 先看下类图：  可知 Thread 类中有一个 threa">
 <meta property="og:locale" content="default">
-<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png">
-<meta property="og:updated_time" content="2019-03-13T12:02:00.000Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu2.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/liuchengtu.png">
+<meta property="og:updated_time" content="2019-03-20T12:31:49.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="java常量池">
-<meta name="twitter:description" content="概述java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。 字符串常量池（String Pool）String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。 JVM 用一个哈希表记录对常量池的引用。 String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png">
+<meta name="twitter:title" content="ThreadLocal">
+<meta name="twitter:description" content="目标总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal ThreadLocal提供线程本地变量，创建一个ThreadLocal需要及时销毁，不然会造成内存泄露。 先看下类图：  可知 Thread 类中有一个 threa">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu.png">
 
 
 
@@ -117,13 +118,13 @@
 
 
 
-  <link rel="canonical" href="https://zhouxinghang.github.io/java-constant-pool.html">
+  <link rel="canonical" href="https://zhouxinghang.github.io/threadLocal.html">
 
 
 
 
 
-  <title>java常量池 | ZBlog</title>
+  <title>ThreadLocal | ZBlog</title>
   
 
 
@@ -292,7 +293,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/java-constant-pool.html">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/threadLocal.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="海边捡贝壳">
@@ -309,7 +310,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">java常量池</h1>
+          <h1 class="post-title" itemprop="name headline">ThreadLocal</h1>
         
 
         <div class="post-meta">
@@ -321,8 +322,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-13T19:46:20+08:00">
-                2019-03-13
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-20T20:22:41+08:00">
+                2019-03-20
               </time>
             
 
@@ -344,8 +345,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java基础/" itemprop="url" rel="index">
-                    <span itemprop="name">java基础</span>
+                  <a href="/categories/java进阶/" itemprop="url" rel="index">
+                    <span itemprop="name">java进阶</span>
                   </a>
                 </span>
 
@@ -362,8 +363,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/java-constant-pool.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/java-constant-pool.html" itemprop="commentCount"></span>
+                <a href="/threadLocal.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/threadLocal.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -391,42 +392,46 @@
       
 
       
-        <meta name="generator" content="Hexo 3.8.0"><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
-<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
-<p>JVM 用一个哈希表记录对常量池的引用。</p>
-<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
-<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
-<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
-<p>举个栗子。</p>
-<p>一个 HelloWord.java 文件</p>
-<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>{</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>{</span><br><span class="line">        String s = <span class="string">"helloword"</span>;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
-<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
-<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum <span class="number">3</span>a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">"HelloWord.java"</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line">  minor version: 0</span><br><span class="line">  major version: <span class="number">52</span></span><br><span class="line">  flags: ACC_PUBLIC, ACC_SUPER</span><br><span class="line">Constant pool:</span><br><span class="line">   #1 = Methodref          #4.#20         // java/lang/Object."<init>":()V</init></span><br><span class="line">   #2 = String             #21            // helloword</span><br><span class="line">   #3 = Class              #22            // com/zxh/study/test/HelloWord</span><br><span class="line">   #4 = Class              #23            // java/lang/Object</span><br><span class="line">   #5 = Utf8               <init></init></span><br><span class="line">   #6 = Utf8               ()V</span><br><span class="line">   #7 = Utf8               Code</span><br><span class="line">   #8 = Utf8               LineNumberTable</span><br><span class="line">   #9 = Utf8               LocalVariableTable</span><br><span class="line">  #10 = Utf8               this</span><br><span class="line">  #11 = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #12 = Utf8               main</span><br><span class="line">  #13 = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #14 = Utf8               args</span><br><span class="line">  #15 = Utf8               [Ljava/lang/String;</span><br><span class="line">  #16 = Utf8               s</span><br><span class="line">  #17 = Utf8               Ljava/lang/String;</span><br><span class="line">  #18 = Utf8               SourceFile</span><br><span class="line">  #19 = Utf8               HelloWord.java</span><br><span class="line">  #20 = NameAndType        #5:#6          // "<init>":()V</init></span><br><span class="line">  #21 = Utf8               helloword</span><br><span class="line">  #22 = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #23 = Utf8               java/lang/Object</span><br><span class="line">{</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         1: invokespecial #1                  // Method java/lang/Object."<init>":()V</init></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         0: ldc           #2                  // String helloword</span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
-<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
-</blockquote>
-<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
-<p>字面量只可以右值出现。如 <code>String s = "helloword"</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
-<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
-<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
-<p>在《深入理解Java虚拟机》中有这样的描述：</p>
-<blockquote>
-<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
-</blockquote>
-<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
-<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
-<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
-<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
-<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
-</ul>
-<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
-<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
-<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869" target="_blank" rel="noopener">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
-<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
-<p><a href="http://blog.jamesdbloom.com/JVMInternals.html" target="_blank" rel="noopener">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
+        <meta name="generator" content="Hexo 3.8.0"><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal</p>
+<h2 id="ThreadLocal"><a href="#ThreadLocal" class="headerlink" title="ThreadLocal"></a>ThreadLocal</h2><p>提供线程本地变量，创建一个ThreadLocal需要及时销毁，不然会造成内存泄露。</p>
+<p>先看下类图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu.png" alt="ThreadLocal类图"></p>
+<p>可知 Thread 类中有一个 threadLocals 和 inheritableThreadLocals 都是 ThreadLocalMap 类型的变量，而 ThreadLocalMap 是一个定制化的 Hashmap，默认每个线程中这个两个变量都为 null，只有当前线程第一次调用了 ThreadLocal 的 set 或者 get 方法时候才会进行创建。其 key 是 ThradLocal，value 是存放的数据。</p>
+<p>每个线程本地数据不是存放在 ThreadLocal 里面，而是线程的 threadLocals 变量里。也就是说 ThreadLocal 类型的本地变量是存放到具体的线程内存空间的。</p>
+<p>ThreadLocal 只是一个工具壳，他通过 set 方法将数据存放在线程的 threadLocals 变量里，通过 get 方法从线程的 thradLocals 里取数据。</p>
+<h3 id="注意点"><a href="#注意点" class="headerlink" title="注意点"></a>注意点</h3><p>ThreadLocal 变量时线程封闭的，子线程不继承父线程的数据。且创建了ThreadLocal 变量用后需要及时销毁，否则会造成内存泄露。</p>
+<h2 id="InheritableThreadLocal"><a href="#InheritableThreadLocal" class="headerlink" title="InheritableThreadLocal"></a>InheritableThreadLocal</h2><p>InheritableThreadLocal 继承自 ThreadLocal，提供了一个特性，子线程可以继承父线程的 ThreadLocal 变量。</p>
+<p>先看下代码：</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InheritableThreadLocal</span><<span class="title">T</span>> <span class="keyword">extends</span> <span class="title">ThreadLocal</span><<span class="title">T</span>> </span>{</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> T <span class="title">childValue</span><span class="params">(T parentValue)</span> </span>{</span><br><span class="line">        <span class="keyword">return</span> parentValue;</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="function">ThreadLocalMap <span class="title">getMap</span><span class="params">(Thread t)</span> </span>{</span><br><span class="line">       <span class="keyword">return</span> t.inheritableThreadLocals;</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">createMap</span><span class="params">(Thread t, T firstValue)</span> </span>{</span><br><span class="line">        t.inheritableThreadLocals = <span class="keyword">new</span> ThreadLocalMap(<span class="keyword">this</span>, firstValue);</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<p>可知 InheritableThreadLocal 就是讲 ThreadLocal 操作的 线程的 threadLocals 变量给成线程的 inheritableThreadLocals 变量，那么实现原理得从 Thread 来看。</p>
+<p>在 Thread 类的 init 方法中有这样的代码：</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (parent.inheritableThreadLocals != <span class="keyword">null</span>)</span><br><span class="line">    <span class="keyword">this</span>.inheritableThreadLocals =</span><br><span class="line">        ThreadLocal.createInheritedMap(parent.inheritableThreadLocals);</span><br></pre></td></tr></tbody></table></figure>
+<p>可知，在线程创建的时候，如果 inheritableThreadLocals 变量不为空会复制给子线程，这样就保证了 InheritableThreadLocal 类能够继承父类的 ThreadLocal 变量（似乎叫 InheritableThreadLocal 变量更合适）</p>
+<h3 id="InheritableThreadLocal-使用场景"><a href="#InheritableThreadLocal-使用场景" class="headerlink" title="InheritableThreadLocal 使用场景"></a>InheritableThreadLocal 使用场景</h3><p>比如存放用户登录信息的 threadlocal 变量，很有可能子线程中也需要使用用户登录信息，再比如一些中间件需要用统一的追踪 ID 把整个调用链路记录下来的情景。</p>
+<h2 id="ThreadLocalRandom-中的应用"><a href="#ThreadLocalRandom-中的应用" class="headerlink" title="ThreadLocalRandom 中的应用"></a>ThreadLocalRandom 中的应用</h2><h3 id="Random-在高并发下的缺陷"><a href="#Random-在高并发下的缺陷" class="headerlink" title="Random 在高并发下的缺陷"></a>Random 在高并发下的缺陷</h3><p>先来看下 nextInt(int n) 的方法：<br></p><figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">nextInt</span><span class="params">(<span class="keyword">int</span> bound)</span> </span>{</span><br><span class="line">    <span class="keyword">if</span> (bound <= <span class="number">0<!--=--></span>)<br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(BadBound);</span><br><span class="line">    <span class="comment">// 根据老的种子生成新的种子 r </span></span><br><span class="line">    <span class="keyword">int</span> r = next(<span class="number">31</span>);</span><br><span class="line">    <span class="keyword">int</span> m = bound - <span class="number">1</span>;</span><br><span class="line">    <span class="comment">// 根据种子 r 计算随机数</span></span><br><span class="line">    <span class="keyword">if</span> ((bound & m) == <span class="number">0</span>)  <span class="comment">// i.e., bound is a power of 2</span></span><br><span class="line">        r = (<span class="keyword">int</span>)((bound * (<span class="keyword">long</span>)r) >> <span class="number">31</span>);</span><br><span class="line">    <span class="keyword">else</span> {</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> u = r;</span><br><span class="line">             u - (r = u % bound) + m < <span class="number">0</span>;</span><br><span class="line">             u = next(<span class="number">31</span>))</span><br><span class="line">            ;</span><br><span class="line">    }</span><br><span class="line">    <span class="keyword">return</span> r;</span><br><span class="line">}</span><br></span></pre></td></tr></tbody></table></figure><p></p>
+<p>根据老种子获取新种子的方法：<br></p><figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> bits)</span> </span>{</span><br><span class="line">    <span class="keyword">long</span> oldseed, nextseed;</span><br><span class="line">    <span class="comment">// 是原子变量</span></span><br><span class="line">    AtomicLong seed = <span class="keyword">this</span>.seed;</span><br><span class="line">    <span class="comment">// 轮训 CAS 操作</span></span><br><span class="line">    <span class="keyword">do</span> {</span><br><span class="line">        oldseed = seed.get();</span><br><span class="line">        nextseed = (oldseed * multiplier + addend) & mask;</span><br><span class="line">    } <span class="keyword">while</span> (!seed.compareAndSet(oldseed, nextseed));</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>)(nextseed >>> (<span class="number">48</span> - bits));</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>根据上诉代码可知，生成一个随机数，需要先获取新种子，然后通过新种子来计算随机数。而获取新种子是存在并发问题的，因此 Random 的做法是将种子定义为<strong>原子变量</strong>，线程通过<strong>轮训 CAS 操作</strong>来得到新种子。这样虽然能保证线程安全，但是<strong>在高并发下会造成大量线程进行自旋重试和无畏的 CAS 操作</strong>。</p>
+<h3 id="ThreadLocalRandom-来了"><a href="#ThreadLocalRandom-来了" class="headerlink" title="ThreadLocalRandom 来了"></a>ThreadLocalRandom 来了</h3><p>继承自 Random，先看下类图：<br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu2.png" alt="Random类图"></p>
+<p>ThreadLocalRandom 并没有维持一个原子变量种子，而是将每个线程的种子存放在线程的 threadLocalRandomSeed 变量中，ThreadLocalRandom 类像 ThreadLocal 类一样是一个工具类。值得注意的是 <strong>threadLocalRandomSeed 是 long 类型，因为是线程封闭的</strong>。</p>
+<h2 id="Spring-Request-Scope-作用域-Bean-中-ThreadLocal-的使用"><a href="#Spring-Request-Scope-作用域-Bean-中-ThreadLocal-的使用" class="headerlink" title="Spring Request Scope 作用域 Bean 中 ThreadLocal 的使用"></a>Spring Request Scope 作用域 Bean 中 ThreadLocal 的使用</h2><p>我们知道 Spring 可以在配置 Bean 的时候可以指定 scpoe 属性来指定该 Bean 的作用域，singleton、prototype、request、session 等。其中 request 作用域就是通过 ThreadLocal 来实现的。</p>
+<p>一个 web 请求的简要时序图如下：<br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/liuchengtu.png" alt="时序图"></p>
+<p>每次发起 web 请求在 tomcat 中的 context（具体应用）前且在 host 匹配后，都会在 requestInitialized 方法中设置 RequestContextHolder 属性，在请求结束 requestDestroy 方法中会销毁。</p>
+<p>setRequestAttributes 方法会设置属性到 ThreadLocal 变量，默认是不可继承的，可以设置为可继承，这样就会将属性保存到 InheritableThreadLocal 变量中。也就是说默认情况下，子线程访问不到存放在 RequestContextHolder 中的属性。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文通过循序渐进的方式，先讲解了 ThreadLocal 的简单使用，然后讲解了 ThreadLocal 的实现原理，并指出 ThreadLocal 不支持继承性；然后紧接着讲解了 InheritableThreadLocal 是如何补偿了 ThreadLocal 不支持继承的特性；然后讲解了 ThreadLocalRandom 是如何借鉴 ThreadLocal 的思想补充了 Random 的不足；最后简单的介绍了 Spring 框架中如何使用 ThreadLocal 实现了 Reqeust Scope 的 Bean。</p>
+<h2 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h2><h3 id="ThreadLocalMap-采用线性探测法"><a href="#ThreadLocalMap-采用线性探测法" class="headerlink" title="ThreadLocalMap 采用线性探测法"></a>ThreadLocalMap 采用线性探测法</h3><p>ThreadLocalMap 内部是通过 “线性探测法” 来解决hash冲突的，不同于 HashMap 是通过链表法解决 hash 冲突。</p>
+<p>ThreadLocalMap 采用 ThreadLocal 的弱引用作为 key。</p>
+<p><strong>线性探测法</strong></p>
+<p>就是在当前位置线性往后探测如果有空的位置就set</p>
+<p><a href="https://zhuanlan.zhihu.com/p/37004598" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/37004598</a></p>
+<p><strong>拉链法与线程探测法优缺点</strong></p>
+<p>拉链法不会产生堆积现象，平均查找长度较短。但相对于线性探测法较浪费空间</p>
+<h3 id="防止内存泄露的最后一道防线——弱引用"><a href="#防止内存泄露的最后一道防线——弱引用" class="headerlink" title="防止内存泄露的最后一道防线——弱引用"></a>防止内存泄露的最后一道防线——弱引用</h3><p>如果 ThreadLocalMap 采用的是强引用，这样引用 ThreadLocal 的对象被回收了，由于 ThreadLocal 一直被 ThreadLocalMap 强引用着而不能被回收，从而导致 Entry 内存泄露。</p>
+<p>如果是弱引用，就算你不显示的调用 remove 方法，在 gc 执行的时候，如果一个对象只被弱引用着，就会无脑回收这个对象。就不会产生内存泄露。</p>
+<p>但是日常开发中，还是要用完即删除，调用 remove 方法，会将 ThreadLocal 从 ThreadLocalMap 移除。</p>
+<h3 id="补充——ThreadLocal会造成内存泄露"><a href="#补充——ThreadLocal会造成内存泄露" class="headerlink" title="补充——ThreadLocal会造成内存泄露"></a>补充——ThreadLocal会造成内存泄露</h3><p>按照前面所说，ThreadLocalMap 采用的是弱引用，这样ThreadLocal会被回收，但是会出现 null-key 的情况。如果线程存货周期较长，那么会存在这样的强引用关系 Thread–>ThreadLocalMap–>Entry–>Value，这条强引用链会导致Entry不会回收，Value也不会回收，但Entry中的Key却已经被回收的情况，造成内存泄漏。</p>
+<p>ThreadLocal 的 get()、set()、remove() 方法调用的时候会清除掉线程 ThreadLocalMap 中所有Entry中Key为null的Value，并将整个 Entry 设置为null，利于下次内存回收</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Java 并发编程之美：并发编程高级篇之一</p>
+<p><a href="https://zhuanlan.zhihu.com/p/37004598" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/37004598</a></p>
 
       
     </div>
@@ -447,7 +452,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>Post link:</strong>
-    <a href="https://zhouxinghang.github.io/java-constant-pool.html" title="java常量池">https://zhouxinghang.github.io/java-constant-pool.html</a>
+    <a href="https://zhouxinghang.github.io/threadLocal.html" title="ThreadLocal">https://zhouxinghang.github.io/threadLocal.html</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice: </strong>
@@ -462,7 +467,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/jvm/" rel="tag"># jvm</a>
+            <a href="/tags/spring/" rel="tag"># spring</a>
+          
+            <a href="/tags/threadlocal/" rel="tag"># threadlocal</a>
           
         </div>
       
@@ -475,8 +482,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/AQS.html" rel="next" title="AQS相关">
-                <i class="fa fa-chevron-left"></i> AQS相关
+              <a href="/java-constant-pool.html" rel="next" title="java常量池">
+                <i class="fa fa-chevron-left"></i> java常量池
               </a>
             
           </div>
@@ -484,10 +491,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/threadLocal.html" rel="prev" title="ThreadLocal">
-                ThreadLocal <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -636,7 +639,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#字符串常量池（String-Pool）"><span class="nav-number">2.</span> <span class="nav-text">字符串常量池（String Pool）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#常量池表（Constant-Pool-Table）"><span class="nav-number">3.</span> <span class="nav-text">常量池表（Constant Pool Table）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#字面量（literal）"><span class="nav-number">3.1.</span> <span class="nav-text">字面量（literal）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#符号引用（Symbolic-References）"><span class="nav-number">3.2.</span> <span class="nav-text">符号引用（Symbolic References）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#常量池表的作用"><span class="nav-number">3.3.</span> <span class="nav-text">常量池表的作用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行时常量池（Runtime-Constant-Pool）"><span class="nav-number">4.</span> <span class="nav-text">运行时常量池（Runtime Constant Pool）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么-Java-需要设计常量池，而-C-没有？"><span class="nav-number">5.</span> <span class="nav-text">为什么 Java 需要设计常量池，而 C 没有？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#目标"><span class="nav-number">1.</span> <span class="nav-text">目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ThreadLocal"><span class="nav-number">2.</span> <span class="nav-text">ThreadLocal</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#注意点"><span class="nav-number">2.1.</span> <span class="nav-text">注意点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InheritableThreadLocal"><span class="nav-number">3.</span> <span class="nav-text">InheritableThreadLocal</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#InheritableThreadLocal-使用场景"><span class="nav-number">3.1.</span> <span class="nav-text">InheritableThreadLocal 使用场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ThreadLocalRandom-中的应用"><span class="nav-number">4.</span> <span class="nav-text">ThreadLocalRandom 中的应用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Random-在高并发下的缺陷"><span class="nav-number">4.1.</span> <span class="nav-text">Random 在高并发下的缺陷</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ThreadLocalRandom-来了"><span class="nav-number">4.2.</span> <span class="nav-text">ThreadLocalRandom 来了</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring-Request-Scope-作用域-Bean-中-ThreadLocal-的使用"><span class="nav-number">5.</span> <span class="nav-text">Spring Request Scope 作用域 Bean 中 ThreadLocal 的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#补充"><span class="nav-number">7.</span> <span class="nav-text">补充</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ThreadLocalMap-采用线性探测法"><span class="nav-number">7.1.</span> <span class="nav-text">ThreadLocalMap 采用线性探测法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#防止内存泄露的最后一道防线——弱引用"><span class="nav-number">7.2.</span> <span class="nav-text">防止内存泄露的最后一道防线——弱引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#补充——ThreadLocal会造成内存泄露"><span class="nav-number">7.3.</span> <span class="nav-text">补充——ThreadLocal会造成内存泄露</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">8.</span> <span class="nav-text">参考</span></a></li></ol></div>
             
 
           </div>
