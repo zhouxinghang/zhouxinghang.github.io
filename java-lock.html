@@ -83,7 +83,7 @@
 <meta property="og:locale" content="default">
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C6C3F573-73C4-4004-8CCA-552720845E46.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/97E1A8E4-10B7-4AC9-AD21-6BACA0C2DF3A.jpg">
-<meta property="og:updated_time" content="2019-03-05T06:38:25.000Z">
+<meta property="og:updated_time" content="2019-03-28T06:35:42.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="java中的锁">
 <meta name="twitter:description" content="公平锁和非公平锁公平锁好处是等待锁的线程不会饿死，但整体效率较低。非公平锁好处是整体效率高一些，但是有些线程可能需要等待很久才能获取到锁。因为非公平锁是可以抢占的。  两者内部都维持一个 AQS 等待队列（FIFO），放置等待等待获取锁的线程。如果释放锁的时候，没有新的线程来获取锁，这时候就会从 AQS 队列头取出线程让其获取到锁。这时候公平锁和非公平锁是一样的。如果释放锁的时候，刚好有新的线程来">
@@ -550,7 +550,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
 <li><p>协程，单线程内维持多个任务的调度 </p>
 </li>
 </ul>
-<h2 id="分段锁"><a href="#分段锁" class="headerlink" title="分段锁"></a>分段锁</h2><p>ConcurrentHashMap </p>
+<h2 id="分段锁"><a href="#分段锁" class="headerlink" title="分段锁"></a>分段锁</h2><p>ConcurrentHashMap，在 java8 之前，ConcurrentHashMap 采用的是 分段锁技术来减少锁粒度。<strong>java8 摈弃了分段锁</strong>，采用的是 CAS 操作 和 synchronized 锁。</p>
 <h2 id="闭锁"><a href="#闭锁" class="headerlink" title="闭锁"></a>闭锁</h2><p>闭锁是一种同步工具类，可以延迟线程的进度直到其到达终止状态。闭锁的作用相当于一扇门：在闭锁到达结束状态之前，这扇门一直是关闭的，并且没有任何线程能通过，当到达结束状态时，这扇门会打开允许所有的线程通过。当闭锁到达结束状态后，将不会再改变状态，因此这扇门将永远保持打开状态。闭锁可以用来确保某些活动指导其他活动都完成后才继续执行。CountDownLatch就是一种灵活的闭锁实现。 </p>
 <h2 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h2><p>多个线程因资源竞争而相互等待的现象。出现死锁必须满足4个条件： </p>
 <ul>
@@ -567,6 +567,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.infoq.cn/article/java-se-16-synchronized" target="_blank" rel="noopener">https://www.infoq.cn/article/java-se-16-synchronized</a> </p>
 <p><a href="https://www.zhihu.com/question/55075763" target="_blank" rel="noopener">https://www.zhihu.com/question/55075763</a> </p>
 <p><a href="https://hiddenpps.blog.csdn.net/article/details/51204385" target="_blank" rel="noopener">https://hiddenpps.blog.csdn.net/article/details/51204385</a> </p>
+<p><a href="https://my.oschina.net/dabiaoge/blog/1613180" target="_blank" rel="noopener">https://my.oschina.net/dabiaoge/blog/1613180</a></p>
 
       
     </div>
@@ -711,7 +712,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-count">11</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -722,7 +723,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-count">5</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -733,7 +734,7 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-count">15</span>
                   <span class="site-state-item-name">tags</span>
                 </a>
               </div>

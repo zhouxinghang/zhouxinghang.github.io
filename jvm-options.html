@@ -62,7 +62,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT">
+  <meta name="keywords" content="java,jvm,">
 
 
 
@@ -73,16 +73,18 @@
 
 
 
-<meta name="description" content="行到水穷处，坐看云起时">
-<meta property="og:type" content="website">
-<meta property="og:title" content="ZBlog">
-<meta property="og:url" content="https://zhouxinghang.github.io/tags/Lock/index.html">
+<meta name="description" content="-X 与 -XX 的区别 Standard options :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).Non">
+<meta name="keywords" content="java,jvm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="jvm参数">
+<meta property="og:url" content="https://zhouxinghang.github.io/jvm-options.html">
 <meta property="og:site_name" content="ZBlog">
-<meta property="og:description" content="行到水穷处，坐看云起时">
+<meta property="og:description" content="-X 与 -XX 的区别 Standard options :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).Non">
 <meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-04-09T13:15:25.373Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="ZBlog">
-<meta name="twitter:description" content="行到水穷处，坐看云起时">
+<meta name="twitter:title" content="jvm参数">
+<meta name="twitter:description" content="-X 与 -XX 的区别 Standard options :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).Non">
 
 
 
@@ -112,13 +114,13 @@
 
 
 
-  <link rel="canonical" href="https://zhouxinghang.github.io/tags/Lock/">
+  <link rel="canonical" href="https://zhouxinghang.github.io/jvm-options.html">
 
 
 
 
 
-  <title>Tag: Lock | ZBlog</title>
+  <title>jvm参数 | ZBlog</title>
   
 
 
@@ -137,7 +139,7 @@
     
   
 
-  <div class="container sidebar-position-left ">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -273,52 +275,379 @@
           <div id="content" class="content">
             
 
-  
-  
-  
-  <div class="post-block tag">
+  <div id="posts" class="posts-expand">
+    
 
-    <div id="posts" class="posts-collapse">
-      <div class="collection-title">
-        <h1>Lock<small>Tag</small>
-        </h1>
-      </div>
+  
 
-      
-        
+  
+  
+  
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/jvm-options.html">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="海边捡贝壳">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ZBlog">
+    </span>
+
+    
+      <header class="post-header">
+
         
-            <a class="post-title-link" href="/AQS.html" itemprop="url">
-              
-                <span itemprop="name">AQS相关</span>
-              
-            </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">jvm参数</h1>
+        
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated" datetime="2019-03-12T11:13:14+08:00" content="2019-03-12">
-          03-12
-        </time>
-      </div>
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-04-06T21:15:55+08:00">
+                2019-04-06
+              </time>
+            
 
-    </header>
-  </article>
+            
 
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">java基础</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/jvm-options.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/jvm-options.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <meta name="generator" content="Hexo 3.8.0"><h2 id="X-与-XX-的区别"><a href="#X-与-XX-的区别" class="headerlink" title="-X 与 -XX 的区别"></a>-X 与 -XX 的区别</h2><blockquote>
+<p><strong>Standard options</strong> :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).<br><strong>Non-standard options</strong> :Options that begin with -X are non-standard (not guaranteed to be supported on all JVM implementations), and are subject to change without notice in subsequent releases of the Java SDK.<br><strong>Developer options</strong> :Options that begin with -XX are developer options and often have specific system requirements for correct operation and may require privileged access to system configuration parameters; they are not recommended for casual use. These options are also subject to change without notice.</p>
+</blockquote>
+<h2 id="XX-参数格式"><a href="#XX-参数格式" class="headerlink" title="-XX 参数格式"></a>-XX 参数格式</h2><p>1）布尔类型 <code>-XX:+option (true)   -XX:-option (false)</code></p>
+<p><code>-XX:+DisableExplicitGC</code></p>
+<p>2）数值类型 <code>-XX:option=number</code>  可以带单位 k,m,g(不区分大小写)</p>
+<p><code>-XX:SurvivorRatio=8 -XX:MetaspaceSize=256M</code></p>
+<p>3）字符类型 <code>-XX:option=String</code>  通常用来设置文件名、路径等</p>
+<p><code>-XX:HeapDumpPath=./java_pid.hprof</code></p>
+<h2 id="关于内存的参数设置"><a href="#关于内存的参数设置" class="headerlink" title="关于内存的参数设置"></a>关于内存的参数设置</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-Xms</td>
+<td>初始堆大小，memory size</td>
+</tr>
+<tr>
+<td>-Xmx</td>
+<td>堆最大值，max memory size，一般和 -Xms 设置同样的大小</td>
+</tr>
+<tr>
+<td>-Xmn</td>
+<td>新生代大小，new memory size</td>
+</tr>
+<tr>
+<td>-Xss</td>
+<td>线程栈大小，stack size</td>
+</tr>
+<tr>
+<td>-XX:PermSize=256m</td>
+<td>永生代初始大小，JDK 8无效，JDK8 将永生代移入到 metaspace</td>
+</tr>
+<tr>
+<td>-XX:MaxPermSize=512m</td>
+<td>永生代最大值，JDK 8无效</td>
+</tr>
+<tr>
+<td>-XX:MaxMetaspaceSize=512m</td>
+<td>元空间初始化大小，JDK 8</td>
+</tr>
+<tr>
+<td>-XX:newRatio=2</td>
+<td>默认是2，新生代站1/3</td>
+</tr>
+<tr>
+<td>-XX:Survivor=8</td>
+<td>默认是8，两个 Survivor 共占用 2/10</td>
+</tr>
+<tr>
+<td>-XX:NewSize</td>
+<td>新生代初始化大小，一般和 -XX:MaxNewSize 设置同样大小，避免新生代内存伸缩</td>
+</tr>
+<tr>
+<td>-XX:MaxNewSize</td>
+<td>新生代最大值</td>
+</tr>
+<tr>
+<td>-XX:InitialCodeCacheSize=128m</td>
+<td>“代码缓存”大小，“代码缓存”用来存储方法编译生成的本地代码</td>
+</tr>
+</tbody>
+</table>
+<h3 id="jvm-设置新生代大小"><a href="#jvm-设置新生代大小" class="headerlink" title="jvm 设置新生代大小"></a>jvm 设置新生代大小</h3><p>jvm 设置新生代大小有很多组参数，大概分为三组：</p>
+<ul>
+<li><code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code> </li>
+<li><code>-Xmn1024m</code></li>
+<li><code>-XX:NewRatio=2</code> （假设Heap总共是3G）</li>
+</ul>
+<p>在 JDK 4 之后，使用 <code>-Xmn=1024m</code>，相当于同时设置 <code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code>，<strong>推荐使用 -Xmn</strong></p>
+<h2 id="关于-GC-日志相关参数"><a href="#关于-GC-日志相关参数" class="headerlink" title="关于 GC 日志相关参数"></a>关于 GC 日志相关参数</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-XX:+PrintGC</td>
+<td>打印GC日志</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCDetails</td>
+<td>打印GC详细日志，包括-XX:+PrintGC</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCTimeStamps</td>
+<td>打印GC时间戳</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCDateStamps</td>
+<td>打印GC时间戳，以日期为准</td>
+</tr>
+<tr>
+<td>-XX:+PrintHeapAtGC</td>
+<td>在运行GC的前后打印堆信息</td>
+</tr>
+<tr>
+<td>-XX:+PrintTenuringDistribution</td>
+<td>新生代GC的时候，打印存活对象的年龄分布</td>
+</tr>
+<tr>
+<td>-XX:HeapDumpPath=/opt/log/oomlogs</td>
+<td>内存溢出时保存当时的内存快照</td>
+</tr>
+<tr>
+<td>-+HeapDumpOnOutOfMemoryError</td>
+<td>发生OOM时，保存dump内存快照</td>
+</tr>
+</tbody>
+</table>
+<h2 id="关于-GC-行为相关参数"><a href="#关于-GC-行为相关参数" class="headerlink" title="关于 GC 行为相关参数"></a>关于 GC 行为相关参数</h2><h3 id="CMS-相关参数"><a href="#CMS-相关参数" class="headerlink" title="CMS 相关参数"></a>CMS 相关参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-XX:+DisableExplicitGC</td>
+<td>禁用显示调用，System.gc()将成为空调用</td>
+</tr>
+<tr>
+<td>-XX:+UseConcMarkSweepGC</td>
+<td>使用CMS收集器收集老年代，特点是低停顿，停顿少。吞吐量相对较低，适合短连接事务型系统</td>
+</tr>
+<tr>
+<td>-XX:CMSInitiatingOccupancyFraction=80</td>
+<td>在默认设置下，CMS收集器在老年代使用了68%的空间后就会被激活，可以适当调高，实际应用中老年代增长不会太快</td>
+</tr>
+</tbody>
+</table>
+<h3 id="G1-相关参数"><a href="#G1-相关参数" class="headerlink" title="G1 相关参数"></a>G1 相关参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-XX:G1HeapRegionSize=n</td>
+<td>设置Region大小，并非最终值</td>
+</tr>
+<tr>
+<td>-XX:MaxGCPauseMillis</td>
+<td>设置G1收集过程目标时间，默认值200ms，不是硬性条件</td>
+</tr>
+<tr>
+<td>-XX:G1NewSizePercent</td>
+<td>新生代最小值，默认值5%</td>
+</tr>
+<tr>
+<td>-XX:G1MaxNewSizePercent</td>
+<td>新生代最大值，默认值60%</td>
+</tr>
+<tr>
+<td>-XX:ParallelGCThreads</td>
+<td>STW期间，并行GC线程数</td>
+</tr>
+<tr>
+<td>-XX:ConcGCThreads=n</td>
+<td>并发标记阶段，并行执行的线程数</td>
+</tr>
+<tr>
+<td>-XX:InitiatingHeapOccupancyPercent</td>
+<td>设置触发标记周期的 Java 堆占用率阈值。默认值是45%。这里的java堆占比指的是non_young_capacity_bytes，包括old+humongous</td>
+</tr>
+</tbody>
+</table>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://eyesmore.iteye.com/blog/1530996" target="_blank" rel="noopener">https://eyesmore.iteye.com/blog/1530996</a><br><a href="https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm" target="_blank" rel="noopener">https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm</a></p>
 
       
     </div>
+    
+    
+    
 
+    
+
+    
+
+    
+      <div>
+        <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:</strong>
+    海边捡贝壳
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link:</strong>
+    <a href="https://zhouxinghang.github.io/jvm-options.html" title="jvm参数">https://zhouxinghang.github.io/jvm-options.html</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice: </strong>
+    All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> unless stating additionally.
+  </li>
+</ul>
+
+      </div>
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+            <a href="/tags/jvm/" rel="tag"># jvm</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/nginx-implement.html" rel="next" title="nginx实现原理">
+                <i class="fa fa-chevron-left"></i> nginx实现原理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/docker-base.html" rel="prev" title="docker-base">
+                docker-base <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
   </div>
   
   
   
+  </article>
 
-  
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -326,6 +655,13 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
 
         </div>
         
@@ -346,8 +682,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -421,6 +766,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#X-与-XX-的区别"><span class="nav-number">1.</span> <span class="nav-text">-X 与 -XX 的区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#XX-参数格式"><span class="nav-number">2.</span> <span class="nav-text">-XX 参数格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于内存的参数设置"><span class="nav-number">3.</span> <span class="nav-text">关于内存的参数设置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#jvm-设置新生代大小"><span class="nav-number">3.1.</span> <span class="nav-text">jvm 设置新生代大小</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于-GC-日志相关参数"><span class="nav-number">4.</span> <span class="nav-text">关于 GC 日志相关参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于-GC-行为相关参数"><span class="nav-number">5.</span> <span class="nav-text">关于 GC 行为相关参数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CMS-相关参数"><span class="nav-number">5.1.</span> <span class="nav-text">CMS 相关参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#G1-相关参数"><span class="nav-number">5.2.</span> <span class="nav-text">G1 相关参数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -557,6 +918,10 @@
 
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
