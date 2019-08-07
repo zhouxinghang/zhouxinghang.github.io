@@ -76,7 +76,7 @@
 <meta name="description" content="一、背景我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘">
 <meta name="keywords" content="源码,caffeine">
 <meta property="og:type" content="article">
-<meta property="og:title" content="caffeine">
+<meta property="og:title" content="caffeine 缓存实现原理">
 <meta property="og:url" content="https://zhouxinghang.github.io/caffeine.html">
 <meta property="og:site_name" content="ZBlog">
 <meta property="og:description" content="一、背景我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘">
@@ -95,9 +95,9 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true">
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true">
 <meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true">
-<meta property="og:updated_time" content="2019-08-06T13:34:48.631Z">
+<meta property="og:updated_time" content="2019-08-07T01:54:26.341Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="caffeine">
+<meta name="twitter:title" content="caffeine 缓存实现原理">
 <meta name="twitter:description" content="一、背景我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true">
 
@@ -135,7 +135,7 @@
 
 
 
-  <title>caffeine | ZBlog</title>
+  <title>caffeine 缓存实现原理 | ZBlog</title>
   
 
 
@@ -321,7 +321,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">caffeine</h1>
+          <h1 class="post-title" itemprop="name headline">caffeine 缓存实现原理</h1>
         
 
         <div class="post-meta">
@@ -333,8 +333,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-08-06T21:04:31+08:00">
-                2019-08-06
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-12T21:04:31+08:00">
+                2019-05-12
               </time>
             
 
@@ -486,7 +486,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>Post link:</strong>
-    <a href="https://zhouxinghang.github.io/caffeine.html" title="caffeine">https://zhouxinghang.github.io/caffeine.html</a>
+    <a href="https://zhouxinghang.github.io/caffeine.html" title="caffeine 缓存实现原理">https://zhouxinghang.github.io/caffeine.html</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice: </strong>
@@ -516,8 +516,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/disrupt.html" rel="next" title="disrupt 实现原理">
-                <i class="fa fa-chevron-left"></i> disrupt 实现原理
+              <a href="/protobuf-use.html" rel="next" title="protobuf 安装使用">
+                <i class="fa fa-chevron-left"></i> protobuf 安装使用
               </a>
             
           </div>
@@ -526,8 +526,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/test.html" rel="prev" title="test">
-                test <i class="fa fa-chevron-right"></i>
+              <a href="/disrupt.html" rel="prev" title="disrupt 实现原理">
+                disrupt 实现原理 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -608,7 +608,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

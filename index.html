@@ -288,350 +288,6 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/test.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="海边捡贝壳">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="ZBlog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/test.html" itemprop="url">test</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-08-06T21:09:31+08:00">
-                2019-08-06
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/test.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/test.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <meta name="generator" content="Hexo 3.8.0"><h2 id="test"><a href="#test" class="headerlink" title="test"></a>test</h2><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio.svg?sanitize=true" alt="Alt text"><br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio.svg"></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/caffeine.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="海边捡贝壳">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="ZBlog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/caffeine.html" itemprop="url">caffeine</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-08-06T21:04:31+08:00">
-                2019-08-06
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/javaWeb/" itemprop="url" rel="index">
-                    <span itemprop="name">javaWeb</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/caffeine.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/caffeine.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <meta name="generator" content="Hexo 3.8.0"><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
-<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
-<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
-<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
-<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
-<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
-<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
-<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
-<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
-<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
-<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
-<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
-<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf" target="_blank" rel="noopener">pproximating Data with the Count-Min Data Structure</a></p>
-<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency" target="_blank" rel="noopener">官网</a></p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency）" target="_blank" rel="noopener">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
-<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
-<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
-<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
-<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
-<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
-<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
-<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
-<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
-<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
-<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
-<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
-<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
-<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
-<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks）" target="_blank" rel="noopener">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
-<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks" target="_blank" rel="noopener">官网</a></p>
-<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
-<ul>
-<li>access order queue，实现读后过期</li>
-<li>write order queue，实现写后过期</li>
-<li>Hierarchical TimerWheel，实现定时过期</li>
-</ul>
-<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
-<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）" target="_blank" rel="noopener">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
-<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
-<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
-<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
-<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
-<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
-<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
-<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
-<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
-<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
-<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
-<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html" target="_blank" rel="noopener">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
-<p><a href="https://github.com/ben-manes/caffeine" target="_blank" rel="noopener">https://github.com/ben-manes/caffeine</a></p>
-<p><a href="https://arxiv.org/pdf/1512.00727.pdf" target="_blank" rel="noopener">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
-<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf" target="_blank" rel="noopener">Approximating Data with the Count-Min Data Structure</a></p>
-<p><a href="https://segmentfault.com/a/1190000016091569" target="_blank" rel="noopener">https://segmentfault.com/a/1190000016091569</a></p>
-<p><a href="https://chuansongme.com/n/2254051" target="_blank" rel="noopener">https://chuansongme.com/n/2254051</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/disrupt.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -777,6 +433,220 @@
 <p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
 <figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>{</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence < sequence)</span><br><span class="line">        {</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        }</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    }</span><br></pre></td></tr></tbody></table></figure>
 <h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor" target="_blank" rel="noopener">https://github.com/LMAX-Exchange/disruptor</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/caffeine.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="海边捡贝壳">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ZBlog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/caffeine.html" itemprop="url">caffeine 缓存实现原理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-05-12T21:04:31+08:00">
+                2019-05-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/javaWeb/" itemprop="url" rel="index">
+                    <span itemprop="name">javaWeb</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/caffeine.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/caffeine.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <meta name="generator" content="Hexo 3.8.0"><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
+<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
+<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
+<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
+<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
+<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
+<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
+<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
+<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
+<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
+<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
+<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
+<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf" target="_blank" rel="noopener">pproximating Data with the Count-Min Data Structure</a></p>
+<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency" target="_blank" rel="noopener">官网</a></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency）" target="_blank" rel="noopener">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
+<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
+<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
+<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
+<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
+<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
+<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
+<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
+<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
+<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
+<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
+<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
+<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks）" target="_blank" rel="noopener">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
+<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks" target="_blank" rel="noopener">官网</a></p>
+<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
+<ul>
+<li>access order queue，实现读后过期</li>
+<li>write order queue，实现写后过期</li>
+<li>Hierarchical TimerWheel，实现定时过期</li>
+</ul>
+<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
+<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）" target="_blank" rel="noopener">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
+<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
+<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
+<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
+<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
+<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
+<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
+<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
+<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
+<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
+<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
+<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html" target="_blank" rel="noopener">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
+<p><a href="https://github.com/ben-manes/caffeine" target="_blank" rel="noopener">https://github.com/ben-manes/caffeine</a></p>
+<p><a href="https://arxiv.org/pdf/1512.00727.pdf" target="_blank" rel="noopener">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
+<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf" target="_blank" rel="noopener">Approximating Data with the Count-Min Data Structure</a></p>
+<p><a href="https://segmentfault.com/a/1190000016091569" target="_blank" rel="noopener">https://segmentfault.com/a/1190000016091569</a></p>
+<p><a href="https://chuansongme.com/n/2254051" target="_blank" rel="noopener">https://chuansongme.com/n/2254051</a></p>
 
           
         
@@ -2317,6 +2187,193 @@
 
 
     
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/java-constant-pool.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="海边捡贝壳">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ZBlog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/java-constant-pool.html" itemprop="url">java常量池</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-03-13T19:46:20+08:00">
+                2019-03-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">java基础</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/java-constant-pool.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/java-constant-pool.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <meta name="generator" content="Hexo 3.8.0"><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>{</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>{</span><br><span class="line">        String s = <span class="string">"helloword"</span>;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum <span class="number">3</span>a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">"HelloWord.java"</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line">  minor version: 0</span><br><span class="line">  major version: <span class="number">52</span></span><br><span class="line">  flags: ACC_PUBLIC, ACC_SUPER</span><br><span class="line">Constant pool:</span><br><span class="line">   #1 = Methodref          #4.#20         // java/lang/Object."<init>":()V</init></span><br><span class="line">   #2 = String             #21            // helloword</span><br><span class="line">   #3 = Class              #22            // com/zxh/study/test/HelloWord</span><br><span class="line">   #4 = Class              #23            // java/lang/Object</span><br><span class="line">   #5 = Utf8               <init></init></span><br><span class="line">   #6 = Utf8               ()V</span><br><span class="line">   #7 = Utf8               Code</span><br><span class="line">   #8 = Utf8               LineNumberTable</span><br><span class="line">   #9 = Utf8               LocalVariableTable</span><br><span class="line">  #10 = Utf8               this</span><br><span class="line">  #11 = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #12 = Utf8               main</span><br><span class="line">  #13 = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #14 = Utf8               args</span><br><span class="line">  #15 = Utf8               [Ljava/lang/String;</span><br><span class="line">  #16 = Utf8               s</span><br><span class="line">  #17 = Utf8               Ljava/lang/String;</span><br><span class="line">  #18 = Utf8               SourceFile</span><br><span class="line">  #19 = Utf8               HelloWord.java</span><br><span class="line">  #20 = NameAndType        #5:#6          // "<init>":()V</init></span><br><span class="line">  #21 = Utf8               helloword</span><br><span class="line">  #22 = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #23 = Utf8               java/lang/Object</span><br><span class="line">{</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         1: invokespecial #1                  // Method java/lang/Object."<init>":()V</init></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         0: ldc           #2                  // String helloword</span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
+</blockquote>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = "helloword"</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
+</ul>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869" target="_blank" rel="noopener">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html" target="_blank" rel="noopener">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
   </section>
 
   
@@ -2367,7 +2424,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
