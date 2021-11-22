@@ -62,7 +62,7 @@
 
 
 
-  <meta name="keywords" content="java,锁,jvm,">
+  <meta name="keywords" content="锁,java,jvm,">
 
 
 
@@ -74,7 +74,7 @@
 
 
 <meta name="description" content="公平锁和非公平锁公平锁好处是等待锁的线程不会饿死，但整体效率较低。非公平锁好处是整体效率高一些，但是有些线程可能需要等待很久才能获取到锁。因为非公平锁是可以抢占的。  两者内部都维持一个 AQS 等待队列（FIFO），放置等待等待获取锁的线程。如果释放锁的时候，没有新的线程来获取锁，这时候就会从 AQS 队列头取出线程让其获取到锁。这时候公平锁和非公平锁是一样的。如果释放锁的时候，刚好有新的线程来">
-<meta name="keywords" content="java,锁,jvm">
+<meta name="keywords" content="锁,java,jvm">
 <meta property="og:type" content="article">
 <meta property="og:title" content="java中的锁">
 <meta property="og:url" content="https://zhouxinghang.github.io/java-lock.html">
@@ -603,9 +603,9 @@ StringBuffer sb = <span class="keyword">new</span> StringBuffer();
       
         <div class="post-tags">
           
-            <a href="/tags/java/" rel="tag"># java</a>
-          
             <a href="/tags/锁/" rel="tag"># 锁</a>
+          
+            <a href="/tags/java/" rel="tag"># java</a>
           
             <a href="/tags/jvm/" rel="tag"># jvm</a>
           
