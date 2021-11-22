@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>ZBlog</title>
+  <icon>https://zhouxinghang.github.io/icon.png</icon>
+  
+  <link href="https://zhouxinghang.github.io/atom.xml" rel="self"/>
+  
+  <link href="https://zhouxinghang.github.io/"/>
+  <updated>2021-11-22T12:30:34.799Z</updated>
+  <id>https://zhouxinghang.github.io/</id>
+  
+  <author>
+    <name>海边捡贝壳</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Http 407 问题排查</title>
+    <link href="https://zhouxinghang.github.io/http-407-fix.html"/>
+    <id>https://zhouxinghang.github.io/http-407-fix.html</id>
+    <published>2019-07-25T11:08:25.000Z</published>
+    <updated>2021-11-22T12:30:34.799Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;问题&quot;&gt;&lt;a href=&quot;#问题&quot; class=&quot;headerlink&quot; title=&quot;问题&quot;&gt;&lt;/a&gt;问题&lt;/h2&gt;&lt;p&gt;最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是</summary>
+        
+      
+    
+    
+    
+    <category term="异常排查" scheme="https://zhouxinghang.github.io/categories/异常排查/"/>
+    
+    
+    <category term="Http" scheme="https://zhouxinghang.github.io/tags/Http/"/>
+    
+    <category term="HttpClient" scheme="https://zhouxinghang.github.io/tags/HttpClient/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>ReentrantLock 实现原理</title>
+    <link href="https://zhouxinghang.github.io/ReentrantLock.html"/>
+    <id>https://zhouxinghang.github.io/ReentrantLock.html</id>
+    <published>2019-07-07T09:45:14.000Z</published>
+    <updated>2021-11-22T12:30:34.796Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;Lock-简介&quot;&gt;&lt;a href=&quot;#Lock-简介&quot; class=&quot;headerlink&quot; title=&quot;Lock 简介&quot;&gt;&lt;/a&gt;Lock 简介&lt;/h2&gt;&lt;p&gt;Lock 是 JDK1.5</summary>
+        
+      
+    
+    
+    
+    <category term="并发编程" scheme="https://zhouxinghang.github.io/categories/并发编程/"/>
+    
+    
+    <category term="AQS" scheme="https://zhouxinghang.github.io/tags/AQS/"/>
+    
+    <category term="源码" scheme="https://zhouxinghang.github.io/tags/源码/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>disrupt 实现原理</title>
+    <link href="https://zhouxinghang.github.io/disrupt.html"/>
+    <id>https://zhouxinghang.github.io/disrupt.html</id>
+    <published>2019-06-23T13:59:08.000Z</published>
+    <updated>2021-11-22T12:30:34.797Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;一、Disruptor-简介&quot;&gt;&lt;a href=&quot;#一、Disruptor-简介&quot; class=&quot;headerlink&quot; title=&quot;一、Disruptor 简介&quot;&gt;&lt;/a&gt;一、Disruptor</summary>
+        
+      
+    
+    
+    
+    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    
+    
+    <category term="源码" scheme="https://zhouxinghang.github.io/tags/源码/"/>
+    
+    <category term="disruptor" scheme="https://zhouxinghang.github.io/tags/disruptor/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>caffeine 缓存实现原理</title>
+    <link href="https://zhouxinghang.github.io/caffeine.html"/>
+    <id>https://zhouxinghang.github.io/caffeine.html</id>
+    <published>2019-05-12T13:04:31.000Z</published>
+    <updated>2021-11-22T12:30:34.796Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;一、背景&quot;&gt;&lt;a href=&quot;#一、背景&quot; class=&quot;headerlink&quot; title=&quot;一、背景&quot;&gt;&lt;/a&gt;一、背景&lt;/h2&gt;&lt;p&gt;我们知道 HashMap</summary>
+        
+      
+    
+    
+    
+    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    
+    
+    <category term="源码" scheme="https://zhouxinghang.github.io/tags/源码/"/>
+    
+    <category term="caffeine" scheme="https://zhouxinghang.github.io/tags/caffeine/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>protobuf 安装使用</title>
+    <link href="https://zhouxinghang.github.io/protobuf-use.html"/>
+    <id>https://zhouxinghang.github.io/protobuf-use.html</id>
+    <published>2019-04-30T13:40:30.000Z</published>
+    <updated>2021-11-22T12:30:34.803Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;安装&quot;&gt;&lt;a href=&quot;#安装&quot; class=&quot;headerlink&quot; title=&quot;安装&quot;&gt;&lt;/a&gt;安装&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;官网下载 &lt;a</summary>
+        
+      
+    
+    
+    
+    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    
+    
+    <category term="protobuf" scheme="https://zhouxinghang.github.io/tags/protobuf/"/>
+    
+    <category term="序列化" scheme="https://zhouxinghang.github.io/tags/序列化/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>单例模式</title>
+    <link href="https://zhouxinghang.github.io/singleton.html"/>
+    <id>https://zhouxinghang.github.io/singleton.html</id>
+    <published>2019-04-13T12:43:22.000Z</published>
+    <updated>2021-11-22T12:30:34.803Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;饿汉式单例&quot;&gt;&lt;a href=&quot;#饿汉式单例&quot; class=&quot;headerlink&quot; title=&quot;饿汉式单例&quot;&gt;&lt;/a&gt;饿汉式单例&lt;/h2&gt;&lt;p&gt;类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring</summary>
+        
+      
+    
+    
+    
+    <category term="java基础" scheme="https://zhouxinghang.github.io/categories/java基础/"/>
+    
+    
+    <category term="源码" scheme="https://zhouxinghang.github.io/tags/源码/"/>
+    
+    <category term="设计模式" scheme="https://zhouxinghang.github.io/tags/设计模式/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Mac 实现 NTFS 格式硬盘读写</title>
+    <link href="https://zhouxinghang.github.io/mac-NTFS.html"/>
+    <id>https://zhouxinghang.github.io/mac-NTFS.html</id>
+    <published>2019-04-13T11:32:59.000Z</published>
+    <updated>2021-11-22T12:30:34.802Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;理论&quot;&gt;&lt;a href=&quot;#理论&quot; class=&quot;headerlink&quot;</summary>
+        
+      
+    
+    
+    
+    <category term="计算机操作" scheme="https://zhouxinghang.github.io/categories/计算机操作/"/>
+    
+    
+    <category term="mac" scheme="https://zhouxinghang.github.io/tags/mac/"/>
+    
+    <category term="ntfs" scheme="https://zhouxinghang.github.io/tags/ntfs/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>docker基础</title>
+    <link href="https://zhouxinghang.github.io/docker-base.html"/>
+    <id>https://zhouxinghang.github.io/docker-base.html</id>
+    <published>2019-04-09T12:59:33.000Z</published>
+    <updated>2021-11-22T12:30:34.798Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;Docker-简介&quot;&gt;&lt;a href=&quot;#Docker-简介&quot; class=&quot;headerlink&quot; title=&quot;Docker 简介&quot;&gt;&lt;/a&gt;Docker 简介&lt;/h2&gt;&lt;h3</summary>
+        
+      
+    
+    
+    
+    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    
+    
+    <category term="javaWeb" scheme="https://zhouxinghang.github.io/tags/javaWeb/"/>
+    
+    <category term="docker" scheme="https://zhouxinghang.github.io/tags/docker/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>jvm参数</title>
+    <link href="https://zhouxinghang.github.io/jvm-options.html"/>
+    <id>https://zhouxinghang.github.io/jvm-options.html</id>
+    <published>2019-04-06T13:15:55.000Z</published>
+    <updated>2021-11-22T12:30:34.801Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;X-与-XX-的区别&quot;&gt;&lt;a href=&quot;#X-与-XX-的区别&quot; class=&quot;headerlink&quot; title=&quot;-X 与 -XX 的区别&quot;&gt;&lt;/a&gt;-X 与 -XX</summary>
+        
+      
+    
+    
+    
+    <category term="java基础" scheme="https://zhouxinghang.github.io/categories/java基础/"/>
+    
+    
+    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    
+    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>nginx实现原理</title>
+    <link href="https://zhouxinghang.github.io/nginx-implement.html"/>
+    <id>https://zhouxinghang.github.io/nginx-implement.html</id>
+    <published>2019-03-30T12:37:47.000Z</published>
+    <updated>2021-11-22T12:30:34.802Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;简单理解-Nginx&quot;&gt;&lt;a href=&quot;#简单理解-Nginx&quot; class=&quot;headerlink&quot; title=&quot;简单理解 Nginx&quot;&gt;&lt;/a&gt;简单理解 Nginx&lt;/h2&gt;&lt;p&gt;nginx 是静态</summary>
+        
+      
+    
+    
+    
+    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    
+    
+    <category term="nginx" scheme="https://zhouxinghang.github.io/tags/nginx/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>ThreadLocal</title>
+    <link href="https://zhouxinghang.github.io/threadLocal.html"/>
+    <id>https://zhouxinghang.github.io/threadLocal.html</id>
+    <published>2019-03-20T12:22:41.000Z</published>
+    <updated>2021-11-22T12:30:34.804Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;目标&quot;&gt;&lt;a href=&quot;#目标&quot; class=&quot;headerlink&quot; title=&quot;目标&quot;&gt;&lt;/a&gt;目标&lt;/h2&gt;&lt;p&gt;总结 ThreadLocal</summary>
+        
+      
+    
+    
+    
+    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java进阶/"/>
+    
+    
+    <category term="spring" scheme="https://zhouxinghang.github.io/tags/spring/"/>
+    
+    <category term="threadlocal" scheme="https://zhouxinghang.github.io/tags/threadlocal/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>java常量池</title>
+    <link href="https://zhouxinghang.github.io/java-constant-pool.html"/>
+    <id>https://zhouxinghang.github.io/java-constant-pool.html</id>
+    <published>2019-03-13T11:46:20.000Z</published>
+    <updated>2019-03-13T12:02:00.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;概述&quot;&gt;&lt;a href=&quot;#概述&quot; class=&quot;headerlink&quot; title=&quot;概述&quot;&gt;&lt;/a&gt;概述&lt;/h2&gt;&lt;p&gt;java 包括三种常量池，分别是 字符串常量池、Class</summary>
+        
+      
+    
+    
+    
+    <category term="java基础" scheme="https://zhouxinghang.github.io/categories/java基础/"/>
+    
+    
+    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>AQS相关</title>
+    <link href="https://zhouxinghang.github.io/AQS.html"/>
+    <id>https://zhouxinghang.github.io/AQS.html</id>
+    <published>2019-03-12T03:13:14.000Z</published>
+    <updated>2019-03-13T11:46:55.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;AQS-简单介绍&quot;&gt;&lt;a href=&quot;#AQS-简单介绍&quot; class=&quot;headerlink&quot; title=&quot;AQS 简单介绍&quot;&gt;&lt;/a&gt;AQS</summary>
+        
+      
+    
+    
+    
+    <category term="并发编程" scheme="https://zhouxinghang.github.io/categories/并发编程/"/>
+    
+    
+    <category term="AQS" scheme="https://zhouxinghang.github.io/tags/AQS/"/>
+    
+    <category term="锁" scheme="https://zhouxinghang.github.io/tags/锁/"/>
+    
+    <category term="源码分析" scheme="https://zhouxinghang.github.io/tags/源码分析/"/>
+    
+    <category term="Lock" scheme="https://zhouxinghang.github.io/tags/Lock/"/>
+    
+    <category term="synchronized" scheme="https://zhouxinghang.github.io/tags/synchronized/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>java中的锁</title>
+    <link href="https://zhouxinghang.github.io/java-lock.html"/>
+    <id>https://zhouxinghang.github.io/java-lock.html</id>
+    <published>2019-03-05T06:24:30.000Z</published>
+    <updated>2021-11-22T12:30:34.800Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;公平锁和非公平锁&quot;&gt;&lt;a href=&quot;#公平锁和非公平锁&quot; class=&quot;headerlink&quot;</summary>
+        
+      
+    
+    
+    
+    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java进阶/"/>
+    
+    
+    <category term="锁" scheme="https://zhouxinghang.github.io/tags/锁/"/>
+    
+    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    
+    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>hexo deploy 指定 git 账户</title>
+    <link href="https://zhouxinghang.github.io/hexodeploy-edit-gitaccount.html"/>
+    <id>https://zhouxinghang.github.io/hexodeploy-edit-gitaccount.html</id>
+    <published>2019-03-04T03:32:31.000Z</published>
+    <updated>2019-03-04T03:38:01.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;问题&quot;&gt;&lt;a href=&quot;#问题&quot; class=&quot;headerlink&quot; title=&quot;问题&quot;&gt;&lt;/a&gt;问题&lt;/h2&gt;&lt;p&gt;hexo deploy默认使用全局的git user.name</summary>
+        
+      
+    
+    
+    
+    <category term="计算机操作" scheme="https://zhouxinghang.github.io/categories/计算机操作/"/>
+    
+    
+    <category term="hexo" scheme="https://zhouxinghang.github.io/tags/hexo/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>java内存模型</title>
+    <link href="https://zhouxinghang.github.io/java-memory-model.html"/>
+    <id>https://zhouxinghang.github.io/java-memory-model.html</id>
+    <published>2019-02-28T15:10:47.000Z</published>
+    <updated>2019-03-01T03:21:54.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h2 id=&quot;基础&quot;&gt;&lt;a href=&quot;#基础&quot; class=&quot;headerlink&quot; title=&quot;基础&quot;&gt;&lt;/a&gt;基础&lt;/h2&gt;&lt;h3 id=&quot;现代计算机物理内存模型&quot;&gt;&lt;a href=&quot;#现代计算机物理内存模型&quot;</summary>
+        
+      
+    
+    
+    
+    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java进阶/"/>
+    
+    
+    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    
+    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    
+    <category term="jmm" scheme="https://zhouxinghang.github.io/tags/jmm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>伪共享</title>
+    <link href="https://zhouxinghang.github.io/false-sharing.html"/>
+    <id>https://zhouxinghang.github.io/false-sharing.html</id>
+    <published>2019-02-28T12:04:04.000Z</published>
+    <updated>2019-03-13T12:14:26.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;h3 id=&quot;伪共享&quot;&gt;&lt;a href=&quot;#伪共享&quot; class=&quot;headerlink&quot; title=&quot;伪共享&quot;&gt;&lt;/a&gt;伪共享&lt;/h3&gt;&lt;p&gt;在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在</summary>
+        
+      
+    
+    
+    
+    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java进阶/"/>
+    
+    
+    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    
+    <category term="并发编程" scheme="https://zhouxinghang.github.io/tags/并发编程/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="https://zhouxinghang.github.io/hello-world.html"/>
+    <id>https://zhouxinghang.github.io/hello-world.html</id>
+    <published>2019-02-28T03:23:00.000Z</published>
+    <updated>2019-02-28T08:21:11.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;Hexo&lt;/a&gt;! This is your very first post.</summary>
+        
+      
+    
+    
+    
+    
+    <category term="linux" scheme="https://zhouxinghang.github.io/tags/linux/"/>
+    
+    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    
+  </entry>
+  
+</feed>
