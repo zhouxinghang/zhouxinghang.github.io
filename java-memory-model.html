@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" integrity="sha256-mUZM63G8m73Mcidfrv5E+Y61y7a12O5mW4ezU3bxqW4=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"zhouxinghang.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.8.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+<meta name="description" content="基础现代计算机物理内存模型 访问局部性（英语：Locality of reference）  访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java内存模型">
+<meta property="og:url" content="https://zhouxinghang.github.io/java-memory-model.html">
+<meta property="og:site_name" content="ZBlog">
+<meta property="og:description" content="基础现代计算机物理内存模型 访问局部性（英语：Locality of reference）  访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png">
+<meta property="article:published_time" content="2019-02-28T15:10:47.000Z">
+<meta property="article:modified_time" content="2019-03-01T03:21:54.000Z">
+<meta property="article:author" content="zhouxinghang">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="jmm">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png">
+
+
+<link rel="canonical" href="https://zhouxinghang.github.io/java-memory-model.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://zhouxinghang.github.io/java-memory-model.html","path":"java-memory-model.html","title":"java内存模型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>java内存模型 | ZBlog</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="ZBlog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">ZBlog</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">day day up</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80"><span class="nav-number">1.</span> <span class="nav-text">基础</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.1.</span> <span class="nav-text">现代计算机物理内存模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E4%BB%A4%E9%87%8D%E6%8E%92%E5%BA%8F"><span class="nav-number">1.2.</span> <span class="nav-text">指令重排序</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#as-if-serial"><span class="nav-number">1.2.1.</span> <span class="nav-text">as-if-serial</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E7%9A%84-working-memory"><span class="nav-number">1.2.2.</span> <span class="nav-text">线程的 working memory</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%EF%BC%88Java-Memory-Model%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">Java 内存模型（Java Memory Model）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#happens-before-%E5%8E%9F%E5%88%99"><span class="nav-number">2.1.</span> <span class="nav-text">happens-before 原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%8F%AF%E8%A7%81%E6%80%A7"><span class="nav-number">2.2.</span> <span class="nav-text">内存可见性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%8F%98%E9%87%8F%E5%AE%9E%E7%8E%B0%E5%8F%AF%E8%A7%81%E6%80%A7%E5%8E%9F%E7%90%86"><span class="nav-number">2.2.1.</span> <span class="nav-text">共享变量实现可见性原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#synchronized"><span class="nav-number">2.2.2.</span> <span class="nav-text">synchronized</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#volatile"><span class="nav-number">2.2.3.</span> <span class="nav-text">volatile</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">3.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhouxinghang</p>
+  <div class="site-description" itemprop="description">行到水穷处，坐看云起时</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">25</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://zhouxinghang.github.io/java-memory-model.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhouxinghang">
+      <meta itemprop="description" content="行到水穷处，坐看云起时">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ZBlog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java内存模型
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-02-28 23:10:47" itemprop="dateCreated datePublished" datetime="2019-02-28T23:10:47+08:00">2019-02-28</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">java进阶</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
+<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
+<blockquote>
+<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+</blockquote>
+<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
+<p>指令重排序包括：</p>
+<ul>
+<li>编译器优化重排序</li>
+<li>指令级并行重排序</li>
+<li>内存系统的重排序</li>
+</ul>
+<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
+<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
+<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
+<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
+<p>8大 happens-before 原则：</p>
+<ul>
+<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
+<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
+<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
+<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
+<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
+<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
+<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
+<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
+</ul>
+<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
+<ul>
+<li>将工作内存1中修改的共享变量刷新到主内存</li>
+<li>将主内存最新的共享变量更新到工作内存2</li>
+</ul>
+<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
+<ul>
+<li>线程解锁前，刷新共享变量到主存</li>
+<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
+</ul>
+<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
+<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a target="_blank" rel="noopener external nofollow noreferrer" href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+              <a href="/tags/jvm/" rel="tag"># jvm</a>
+              <a href="/tags/jmm/" rel="tag"># jmm</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/false-sharing.html" rel="prev" title="伪共享">
+                  <i class="fa fa-chevron-left"></i> 伪共享
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/hexodeploy-edit-gitaccount.html" rel="next" title="hexo deploy 指定 git 账户">
+                  hexo deploy 指定 git 账户 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhouxinghang</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+<script src="https://cdn.jsdelivr.net/npm/hexo-generator-searchdb@1.4.0/dist/search.js" integrity="sha256-vXZMYLEqsROAXkEw93GGIvaB2ab+QW6w3+1ahD9nXXA=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

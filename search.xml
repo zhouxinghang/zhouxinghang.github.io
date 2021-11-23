@@ -1,0 +1,1203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>ReentrantLock 实现原理</title>
+    <url>/ReentrantLock.html</url>
+    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
+<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
+<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
+<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
+<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
+<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
+<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
+<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
+<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
+<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
+<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
+<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
+<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
+<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
+<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
+<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
+<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
+<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
+<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
+<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
+<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
+<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
+<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
+<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
+<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
+]]></content>
+      <categories>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+        <tag>源码</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>disrupt 实现原理</title>
+    <url>/disrupt.html</url>
+    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
+<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
+<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
+<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
+<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
+<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
+<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
+<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
+<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
+<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
+<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
+<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
+<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
+<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
+<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
+<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
+<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
+<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
+<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
+<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
+<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
+<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
+<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
+<p>重点看 BatchEventProcessor#run 方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>disruptor</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>caffeine 缓存实现原理</title>
+    <url>/caffeine.html</url>
+    <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
+<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
+<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
+<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
+<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
+<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
+<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
+<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
+<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
+<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
+<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
+<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
+<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">pproximating Data with the Count-Min Data Structure</a></p>
+<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency">官网</a></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
+<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
+<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
+<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
+<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
+<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
+<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
+<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
+<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
+<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
+<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
+<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
+<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
+<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks">官网</a></p>
+<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
+<ul>
+<li>access order queue，实现读后过期</li>
+<li>write order queue，实现写后过期</li>
+<li>Hierarchical TimerWheel，实现定时过期</li>
+</ul>
+<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
+<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html%EF%BC%89">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
+<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
+<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
+<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
+<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
+<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
+<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
+<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
+<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
+<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
+<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
+<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
+<p><a href="https://github.com/ben-manes/caffeine">https://github.com/ben-manes/caffeine</a></p>
+<p><a href="https://arxiv.org/pdf/1512.00727.pdf">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
+<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">Approximating Data with the Count-Min Data Structure</a></p>
+<p><a href="https://segmentfault.com/a/1190000016091569">https://segmentfault.com/a/1190000016091569</a></p>
+<p><a href="https://chuansongme.com/n/2254051">https://chuansongme.com/n/2254051</a></p>
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>caffeine</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>docker基础</title>
+    <url>/docker-base.html</url>
+    <content><![CDATA[<h2 id="Docker-简介"><a href="#Docker-简介" class="headerlink" title="Docker 简介"></a>Docker 简介</h2><h3 id="什么是-Docker"><a href="#什么是-Docker" class="headerlink" title="什么是 Docker"></a>什么是 Docker</h3><p>Docker 是 dotCloud 公司创立，go 语言编写，基于 Ubuntu 开发。基于 Linux 内核的 cgroup，namespace，以及 AUFS 类的 Union FS 等技术，对进程进行封装隔离，属于<strong>操作系统层面的虚拟化技术</strong>。隔离的进程独立于宿主和隔离的其他进程，也其曾为容器。</p>
+<p>传统的虚拟机技术是虚拟一套硬件出来，在其上运行一个完整操作系统，在该系统上再运行所需应用进程。而容器是直接运行在宿主机的内核，没有进行硬件虚拟。因此容器比传统虚拟机更为轻便。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/ECE81376-BCEF-4910-9912-C25DED99496E.png" alt="虚拟机架构"></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/08B03E00-B63F-48C3-874B-A9BB84CF7339.png" alt="docker 架构"></p>
+<h3 id="为什么要使用-Docker"><a href="#为什么要使用-Docker" class="headerlink" title="为什么要使用 Docker"></a>为什么要使用 Docker</h3><h4 id="更高效利用系统资源"><a href="#更高效利用系统资源" class="headerlink" title="更高效利用系统资源"></a>更高效利用系统资源</h4><p>不需要硬件虚拟化，不需要运行完整 OS</p>
+<h4 id="更快速的启动时间"><a href="#更快速的启动时间" class="headerlink" title="更快速的启动时间"></a>更快速的启动时间</h4><p>直接运行于宿主内核，做到秒级、甚至毫秒级启动</p>
+<h4 id="一致的运行环境"><a href="#一致的运行环境" class="headerlink" title="一致的运行环境"></a>一致的运行环境</h4><p>提供了除内核外完整的运行时环境</p>
+<h4 id="高效部署扩容"><a href="#高效部署扩容" class="headerlink" title="高效部署扩容"></a>高效部署扩容</h4><h4 id="对比传统虚拟机总结"><a href="#对比传统虚拟机总结" class="headerlink" title="对比传统虚拟机总结"></a>对比传统虚拟机总结</h4><table>
+<thead>
+<tr>
+<th align="left">特性</th>
+<th align="left">容器</th>
+<th align="left">虚拟机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">启动</td>
+<td align="left">秒级</td>
+<td align="left">分钟级</td>
+</tr>
+<tr>
+<td align="left">硬盘使用</td>
+<td align="left">一般为 <code>MB</code></td>
+<td align="left">一般为 <code>GB</code></td>
+</tr>
+<tr>
+<td align="left">性能</td>
+<td align="left">接近原生</td>
+<td align="left">弱于</td>
+</tr>
+<tr>
+<td align="left">系统支持量</td>
+<td align="left">单机支持上千个容器</td>
+<td align="left">一般几十个</td>
+</tr>
+</tbody></table>
+<h2 id="Docker-架构"><a href="#Docker-架构" class="headerlink" title="Docker 架构"></a>Docker 架构</h2><p>docker 采用 C/S 架构，Client 通过结构与 Server 进程通信实现容器的构建，运行和发布</p>
+<p>Client 和 Server 可以运行在同一台机器，也可以通过跨主机实现远程通信</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8FC69242-461F-4292-9D12-6E427DABE064.png" alt="docker 操作流程"></p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>镜像（Images）</td>
+<td>用于创建 Docker 容器的模板</td>
+</tr>
+<tr>
+<td>容器（Container）</td>
+<td>独立运行的一个或一组应用</td>
+</tr>
+<tr>
+<td>客户端（Client）</td>
+<td>通过命令行或其他工具调用 Docker API</td>
+</tr>
+<tr>
+<td>主机（Host）</td>
+<td>一个宿主机用于执行 Docker 守护进程和容器</td>
+</tr>
+<tr>
+<td>注册服务器（Registry）</td>
+<td>用于保存镜像，类似于 git 厂库。Docker Hub(<a href="https://hub.docker.com/">https://hub.docker.com</a>) 提供了庞大的镜像集合供使用。</td>
+</tr>
+</tbody></table>
+<h3 id="镜像-image"><a href="#镜像-image" class="headerlink" title="镜像 image"></a>镜像 image</h3><p>操作系统分为内核和用户控件，对于 Linux 而言，内核启动后，会挂载 root 文件系统为其用户空间提供支持。而 Docker Image，就相当于一个 root 文件系统。</p>
+<p>Docker Image 是一个特殊的文件系统，包好了提供容器运行所需的程序、库、资源、配置等文件外，还包括一些配置参数信息（如匿名卷、环境变量、用户等）。镜像不包含任何动态数据，其内容在构建后不会改变。</p>
+<h4 id="分层存储"><a href="#分层存储" class="headerlink" title="分层存储"></a>分层存储</h4><p>Docker Image 不是 ISO 那样的打包文件，它采用 Union FS 技术，将其设计为分层存储的架构。后一层依赖于前一层，如果需要 update 只需要创建一个新的层。这有点类似于 git 版本管理，每一层就是一个 git commit。</p>
+<h3 id="容器-container"><a href="#容器-container" class="headerlink" title="容器 container"></a>容器 container</h3><p>镜像和容器就像面向对象程序中的类和实例对象。镜像是静态定义，容器是镜像运行时的实体。容器可以被创建、启动、停止、删除、暂停等。</p>
+<p>容器 Container 实质是进程，与宿主进程不同，容器进程运行于属于自己独立的 <strong>namespace</strong>。因此容器拥有自己独立的 root 文件系统、网络配置、进程空间甚至自己的用户 ID 空间。</p>
+<p>每个容器运行时，以镜像为基础层，在其上创建一个容器的存储层，为容器运行时读写而准备的存储层为<strong>容器存储层</strong>。容器存储层的生命周期和容器一致。容器存储层的数据也会随着容器的删除而删除。</p>
+<p>按照 Docker 最佳实践要求，容器不应该像其容器存储层写入任务数据，容器存储层要<strong>保持无状态化</strong>。所有文件的写入都应该使用数据卷（Volume）、或者绑定宿主目录，在这些位置的读写会跳过容器存储层，直接对宿主（或网络存储）发起读写，其性能和稳定性更高。</p>
+<p>使用数据卷，容器删除或重新运行，数据不会丢失。</p>
+<h4 id="namespace"><a href="#namespace" class="headerlink" title="namespace"></a>namespace</h4><p><strong>命名空间</strong>是 Linux kernel 的功能，实现一个进程集合只能访问一个资源集合，实现资源和进程的分区，保证其相互独立。</p>
+<p>命名空间是实现 Linux container 的基础。</p>
+<h3 id="仓库-repository"><a href="#仓库-repository" class="headerlink" title="仓库 repository"></a>仓库 repository</h3><p>Docker Repository 用于保存镜像，可以理解为代码控制中的代码仓库。Docker 仓库也分为公有和私有，公有是 Docker Hub</p>
+<h3 id="注册服务器-Registry"><a href="#注册服务器-Registry" class="headerlink" title="注册服务器 Registry"></a>注册服务器 Registry</h3><p>集中存储分发镜像的服务，一个 Docker Registry 包含多个仓库 Repository，每个仓库包含多个<strong>标签 Tag</strong>，每个 标签对应一个镜像</p>
+<h2 id="Docker-实现原理"><a href="#Docker-实现原理" class="headerlink" title="Docker 实现原理"></a>Docker 实现原理</h2><h3 id="命名空间-namespace"><a href="#命名空间-namespace" class="headerlink" title="命名空间 namespace"></a>命名空间 namespace</h3><p>命名空间是 Linux 提供的用于分离进程树、网络接口、挂载点以及进程间通信等资源的方法。</p>
+<h3 id="控制组-cgroups"><a href="#控制组-cgroups" class="headerlink" title="控制组 cgroups"></a>控制组 cgroups</h3><p>命名空间无法提供物理资源的隔离，比如 CPU 和内存，Linux 的控制组能够为一组进程分配资源（CPU, memory, disk I/O, network, etc.）</p>
+<h3 id="UnionFS"><a href="#UnionFS" class="headerlink" title="UnionFS"></a>UnionFS</h3><p>UnionFS 其实是一种为 Linux 操作系统设计的用于把多个文件系统『联合』到同一个挂载点的文件系统服务。而 AUFS 即 Advanced UnionFS 其实就是 UnionFS 的升级版，它能够提供更优秀的性能和效率。</p>
+<h2 id="Docker-基本命令"><a href="#Docker-基本命令" class="headerlink" title="Docker 基本命令"></a>Docker 基本命令</h2><h3 id="docker-version"><a href="#docker-version" class="headerlink" title="docker version"></a>docker version</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker version</span></span><br><span class="line">Client: Docker Engine - Community</span><br><span class="line"> Version:           18.09.2</span><br><span class="line"> API version:       1.39</span><br><span class="line"> Go version:        go1.10.8</span><br><span class="line"> Git commit:        6247962</span><br><span class="line"> Built:             Sun Feb 10 04:12:39 2019</span><br><span class="line"> OS/Arch:           darwin/amd64</span><br><span class="line"> Experimental:      false</span><br><span class="line"></span><br><span class="line">Server: Docker Engine - Community</span><br><span class="line"> Engine:</span><br><span class="line">  Version:          18.09.2</span><br><span class="line">  API version:      1.39 (minimum version 1.12)</span><br><span class="line">  Go version:       go1.10.6</span><br><span class="line">  Git commit:       6247962</span><br><span class="line">  Built:            Sun Feb 10 04:13:06 2019</span><br><span class="line">  OS/Arch:          linux/amd64</span><br><span class="line">  Experimental:     false</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-info"><a href="#docker-info" class="headerlink" title="docker info"></a>docker info</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker info</span></span><br><span class="line">Containers: 0</span><br><span class="line"> Running: 0</span><br><span class="line"> Paused: 0</span><br><span class="line"> Stopped: 0</span><br><span class="line">Images: 0</span><br><span class="line">Server Version: 18.09.2</span><br><span class="line">Storage Driver: overlay2</span><br><span class="line"> Backing Filesystem: extfs</span><br><span class="line"> Supports d_type: true</span><br><span class="line"> Native Overlay Diff: true</span><br><span class="line">Logging Driver: json-file</span><br><span class="line">Cgroup Driver: cgroupfs</span><br><span class="line">Plugins:</span><br><span class="line"> Volume: local</span><br><span class="line"> Network: bridge host macvlan null overlay</span><br><span class="line"> Log: awslogs fluentd gcplogs gelf journald json-file local logentries splunk syslog</span><br><span class="line">Swarm: inactive</span><br><span class="line">Runtimes: runc</span><br><span class="line">Default Runtime: runc</span><br><span class="line">Init Binary: docker-init</span><br><span class="line">containerd version: 9754871865f7fe2f4e74d43e2fc7ccd237edcbce</span><br><span class="line">runc version: 09c8266bf2fcf9519a651b04ae54c967b9ab86ec</span><br><span class="line">init version: fec3683</span><br><span class="line">Security Options:</span><br><span class="line"> seccomp</span><br><span class="line">  Profile: default</span><br><span class="line">Kernel Version: 4.9.125-linuxkit</span><br><span class="line">Operating System: Docker for Mac</span><br><span class="line">OSType: linux</span><br><span class="line">Architecture: x86_64</span><br><span class="line">CPUs: 4</span><br><span class="line">Total Memory: 1.952GiB</span><br><span class="line">Name: linuxkit-025000000001</span><br><span class="line">ID: TCUF:2IMR:QS25:QSA3:XWGV:NL6K:B5OF:B6PQ:6I2L:LJQY:XYOS:BC4F</span><br><span class="line">Docker Root Dir: /var/lib/docker</span><br><span class="line">Debug Mode (client): false</span><br><span class="line">Debug Mode (server): true</span><br><span class="line"> File Descriptors: 24</span><br><span class="line"> Goroutines: 50</span><br><span class="line"> System Time: 2019-04-10T02:47:02.917656675Z</span><br><span class="line"> EventsListeners: 2</span><br><span class="line">HTTP Proxy: gateway.docker.internal:3128</span><br><span class="line">HTTPS Proxy: gateway.docker.internal:3129</span><br><span class="line">Registry: https://index.docker.io/v1/</span><br><span class="line">Labels:</span><br><span class="line">Experimental: false</span><br><span class="line">Insecure Registries:</span><br><span class="line"> 127.0.0.0/8</span><br><span class="line">Live Restore Enabled: false</span><br><span class="line">Product License: Community Engine</span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-search"><a href="#docker-search" class="headerlink" title="docker search"></a>docker search</h3><p>搜索镜像</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker search ubuntu12.10</span></span><br><span class="line">NAME                        DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED</span><br><span class="line">chug/ubuntu12.10x64         Ubuntu Quantal Quetzal 12.10 64bit  base ima…   0                                       </span><br><span class="line">chug/ubuntu12.10x32         Ubuntu Quantal Quetzal 12.10 32bit  base ima…   0                                       </span><br><span class="line">yuanzai/ubuntu12.10x64                                                      0                                       </span><br><span class="line">mirolin/ubuntu12.10_redis                                                   0                                       </span><br><span class="line">mirolin/ubuntu12.10                                                         0                                       </span><br><span class="line">marcgibbons/ubuntu12.10                                                     0                                       </span><br><span class="line">khovi/ubuntu12.10                                                           0                                    </span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-pull"><a href="#docker-pull" class="headerlink" title="docker pull"></a>docker pull</h3><p>下载镜像</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker pull ubuntu</span></span><br><span class="line">Using default tag: latest</span><br><span class="line">latest: Pulling from library/ubuntu</span><br><span class="line">898c46f3b1a1: Pull complete </span><br><span class="line">63366dfa0a50: Pull complete </span><br><span class="line">041d4cd74a92: Pull complete </span><br><span class="line">6e1bee0f8701: Pull complete </span><br><span class="line">Digest: sha256:017eef0b616011647b269b5c65826e2e2ebddbe5d1f8c1e56b3599fb14fabec8</span><br><span class="line">Status: Downloaded newer image for ubuntu:latest</span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-images"><a href="#docker-images" class="headerlink" title="docker images"></a>docker images</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker pull ubuntu</span></span><br><span class="line">Using default tag: latest</span><br><span class="line">latest: Pulling from library/ubuntu</span><br><span class="line">898c46f3b1a1: Pull complete </span><br><span class="line">63366dfa0a50: Pull complete </span><br><span class="line">041d4cd74a92: Pull complete </span><br><span class="line">6e1bee0f8701: Pull complete </span><br><span class="line">Digest: sha256:017eef0b616011647b269b5c65826e2e2ebddbe5d1f8c1e56b3599fb14fabec8</span><br><span class="line">Status: Downloaded newer image for ubuntu:latest</span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-run"><a href="#docker-run" class="headerlink" title="docker run"></a>docker run</h3><h4 id="run-使用镜像创建容器"><a href="#run-使用镜像创建容器" class="headerlink" title="run 使用镜像创建容器"></a>run 使用镜像创建容器</h4><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run ubuntu /bin/<span class="built_in">echo</span> hello world</span></span><br><span class="line">hello world</span><br></pre></td></tr></table></figure>
+
+<h4 id="run-创建容器，并交互式的运行"><a href="#run-创建容器，并交互式的运行" class="headerlink" title="run 创建容器，并交互式的运行"></a>run 创建容器，并交互式的运行</h4><p> -t 选项让Docker分配一个伪终端（pseudo-tty）并绑定到容器的标准输入上， -i 则让容器的标准输入保持打开</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -i -t ubuntu /bin/bash</span></span><br><span class="line">root@5df6791cfcf7:/# </span><br><span class="line">root@5df6791cfcf7:/# ls</span><br><span class="line">bin   dev  home  lib64  mnt  proc  run   srv  tmp  var</span><br><span class="line">boot  etc  lib   media  opt  root  sbin  sys  usr</span><br></pre></td></tr></table></figure>
+
+<h4 id="run-d-守护态运行"><a href="#run-d-守护态运行" class="headerlink" title="run -d 守护态运行"></a>run -d 守护态运行</h4><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> zhouxinghang @ zhouxinghangdeMacBook-Pro <span class="keyword">in</span> ~/Documents/myworkspace [11:31:36]</span> </span><br><span class="line"><span class="meta">$</span><span class="bash"> docker run -d ubuntu /bin/bash -c <span class="string">&quot;while true;do echo hello world;sleep 1;done&quot;</span></span></span><br><span class="line">95d8965f07977d237471a23fe128edf111f5c54cda85c9e3f4877c06dd60b12e</span><br></pre></td></tr></table></figure>
+
+<p>docker logs 容器id 查看容器运行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> zhouxinghang @ zhouxinghangdeMacBook-Pro <span class="keyword">in</span> ~/Documents/myworkspace [11:34:40]</span> </span><br><span class="line"><span class="meta">$</span><span class="bash"> docker logs 95d8965f07977d237471a23fe128edf111f5c54cda85c9e3f4877c06dd60b12e</span></span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br><span class="line">hello world</span><br></pre></td></tr></table></figure>
+
+<h4 id="docker-run-创建容器，执行步骤"><a href="#docker-run-创建容器，执行步骤" class="headerlink" title="docker run 创建容器，执行步骤"></a>docker run 创建容器，执行步骤</h4><ul>
+<li>检查本地是否存在指定镜像，若不存在就去仓库下载</li>
+<li>利用镜像创建容器</li>
+<li>分配文件系统，并在只读的镜像层外挂载一层读写层</li>
+<li>从宿主主机配置的网桥接口中桥接一个虚拟接口到容器中去</li>
+<li>从地址池配置一个 ip 地址给容器</li>
+<li>执行用户指定的应用程序</li>
+<li>执行完成，终止容器</li>
+</ul>
+<h3 id="docker-ps-查看容器"><a href="#docker-ps-查看容器" class="headerlink" title="docker ps 查看容器"></a>docker ps 查看容器</h3><p>-a 包括退出的历史容器</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker ps -a</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                            PORTS               NAMES</span><br><span class="line">95d8965f0797        ubuntu              &quot;/bin/bash -c &#x27;while…&quot;   6 minutes ago       Exited (137) 10 seconds ago                           elegant_montalcini</span><br><span class="line">5cd7025b91b9        ubuntu              &quot;/bin/bash&quot;              12 minutes ago      Exited (130) About a minute ago                       stoic_yonath</span><br><span class="line">5df6791cfcf7        ubuntu              &quot;/bin/bash&quot;              40 minutes ago      Exited (127) 15 minutes ago                           nifty_kirch</span><br><span class="line">c48f8cdf8076        ubuntu              &quot;/bin/echo hello wor…&quot;   41 minutes ago      Exited (0) 41 minutes ago                             elastic_robinson</span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-attach-容器id-连接容器"><a href="#docker-attach-容器id-连接容器" class="headerlink" title="docker attach 容器id 连接容器"></a>docker attach 容器id 连接容器</h3><p>当多个窗口同时 attach 到同一个容器的时候，所有窗口都会<strong>同步显示</strong>。当某个窗口因命令阻塞时,其他窗口也无法执行操作了。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker attach 5cd7025b91b9</span></span><br><span class="line">root@5cd7025b91b9:/var/log# </span><br></pre></td></tr></table></figure>
+
+<h3 id="其它命令"><a href="#其它命令" class="headerlink" title="其它命令"></a>其它命令</h3><ul>
+<li>commit 将容器的状态保存为镜像</li>
+<li>diff 查看容器内容变化</li>
+<li>cp 拷贝文件</li>
+<li>inspect 收集容器和镜像的底层信息</li>
+<li>kill 停止容器主进程</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://en.wikipedia.org/wiki/Linux_namespaces">https://en.wikipedia.org/wiki/Linux_namespaces</a></p>
+<p><a href="https://en.wikipedia.org/wiki/Cgroups">https://en.wikipedia.org/wiki/Cgroups</a></p>
+<p><a href="https://en.wikipedia.org/wiki/Aufs">https://en.wikipedia.org/wiki/Aufs</a></p>
+<p><a href="http://dockone.io/article/2941">http://dockone.io/article/2941</a></p>
+<p><a href="https://www.jianshu.com/p/4ab37ad30bd2">https://www.jianshu.com/p/4ab37ad30bd2</a></p>
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>javaWeb</tag>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/hello-world.html</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>Http 407 问题排查</title>
+    <url>/http-407-fix.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
+<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
+<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
+<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
+<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
+<p>看看 httpClient 的 debug 日志</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
+<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
+]]></content>
+      <categories>
+        <category>异常排查</category>
+      </categories>
+      <tags>
+        <tag>Http</tag>
+        <tag>HttpClient</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>hexo deploy 指定 git 账户</title>
+    <url>/hexodeploy-edit-gitaccount.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
+<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
+
+<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
+]]></content>
+      <categories>
+        <category>计算机操作</category>
+      </categories>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java常量池</title>
+    <url>/java-constant-pool.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
+</blockquote>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
+</ul>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
+]]></content>
+      <categories>
+        <category>java基础</category>
+      </categories>
+      <tags>
+        <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java中的锁</title>
+    <url>/java-lock.html</url>
+    <content><![CDATA[<h2 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h2><p>公平锁好处是等待锁的线程不会饿死，但整体效率较低。非公平锁好处是整体效率高一些，但是有些线程可能需要等待很久才能获取到锁。因为非公平锁是可以抢占的。 </p>
+<p>两者内部都维持一个 AQS 等待队列（FIFO），放置等待等待获取锁的线程。如果释放锁的时候，没有新的线程来获取锁，这时候就会从 AQS 队列头取出线程让其获取到锁。这时候公平锁和非公平锁是一样的。如果释放锁的时候，刚好有新的线程来获取锁，非公平锁就会将锁分配给这个新的线程，这就是<strong>非公平锁的抢占式</strong>。因为非公平锁中新来的线程有一定几率不会被挂起，<strong>减少了整体线程挂起的几率</strong>，所以非公平锁性能高于公平锁。 </p>
+<p>公平锁可以使用new ReentrantLock(true)实现。 </p>
+<h2 id="自旋锁"><a href="#自旋锁" class="headerlink" title="自旋锁"></a>自旋锁</h2><p>java 的线程是映射到操作系统的，线程的阻塞和唤醒需要操作系统来完成，这就需要从用户态转换到核心态，增加了状态切换的耗时。许多应用的共享数据的锁定状态自会持续很短的时间，为了这点时间去挂起和恢复现场不值得。我们可以让请求锁的线程自旋等待，不放弃CPU时间，直到获取到锁。 </p>
+<p>自旋锁在JDK1.4.2中引入，使用-XX:+UseSpinning来开启。JDK6中已经变为默认开启，并且引入了自适应的自旋锁。自适应意味着自旋的时间不在固定了，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。 </p>
+<p>自旋锁是通过 CAS 实现的，即不断重试 CAS 直到成功为止。自旋锁存在的问题如下： </p>
+<ul>
+<li><p>占用过多 CPU 时间 </p>
+</li>
+<li><p>死锁问题，在递归调用中，同一个线程获取到自旋锁，由再次申请获取 </p>
+</li>
+<li><p>ABA 问题，java 中自旋锁一般是利用 CAS 操作实现 </p>
+</li>
+</ul>
+<p>jdk 中 atomic 包下都是采用自旋锁原理 </p>
+<h2 id="锁消除"><a href="#锁消除" class="headerlink" title="锁消除"></a>锁消除</h2><p>锁消除是指 JVM 在 JIT 编译时，通过扫描上下文，去除不可能存在共享资源竞争的锁。通过锁消除，可以减少无畏的请求锁时间。 </p>
+<p>锁消除的主要判断依据是来源于逃逸分析的数据支持，如果判断在一段代码中，堆上的所有数据都不会逃逸出去从而能被其他线程访问到，那就可以把他们当做栈上数据对待，认为他们是线程私有的，同步加锁自然就无需进行。 </p>
+<p>比如下面这个代码 </p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">concatString</span><span class="params">(String s1, String s2, String s3)</span> </span>&#123; </span><br><span class="line"></span><br><span class="line">	StringBuffer sb = <span class="keyword">new</span> StringBuffer(); </span><br><span class="line"></span><br><span class="line">	sb.append(s1); </span><br><span class="line"></span><br><span class="line">	sb.append(s2); </span><br><span class="line"></span><br><span class="line">	sb.append(s3); </span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> sb.toString(); </span><br><span class="line"></span><br><span class="line">&#125; </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>JIT 回去除 append 方法的加锁 </p>
+<h2 id="锁粗化"><a href="#锁粗化" class="headerlink" title="锁粗化"></a>锁粗化</h2><p>一般情况下，都是推荐加锁范围越小越好。但是如果连续几行代码都是对同一个对象加锁解锁，甚至加锁操作出现循环体中。虚拟机遇到这样的情况，会将加锁范围扩大到整个操作序列的外部 </p>
+<p>比如下面的代码 </p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">StringBuffer sb = <span class="keyword">new</span> StringBuffer(); </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">concatString</span><span class="params">(String s1, String s2, String s3)</span> </span>&#123; </span><br><span class="line"></span><br><span class="line">	StringBuffer sb = <span class="keyword">new</span> StringBuffer(); </span><br><span class="line"></span><br><span class="line">	sb.append(s1); </span><br><span class="line"></span><br><span class="line">	sb.append(s2); </span><br><span class="line"></span><br><span class="line">	sb.append(s3); </span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> sb.toString(); </span><br><span class="line"></span><br><span class="line">&#125; </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>因为 StringBuffer 定义在方法体外面，存在锁竞争，每个 append 都会加解锁，jvm 会将加锁范围扩大到 整个 append 操作序列的外部 </p>
+<h2 id="可重入锁"><a href="#可重入锁" class="headerlink" title="可重入锁"></a>可重入锁</h2><p>可重入锁也叫递归锁，同一线程可以多次获取同一个锁。可重入锁避免了死锁，synchronizez 和 ReentrantLock 都是可重入锁 </p>
+<h2 id="类锁和对象锁"><a href="#类锁和对象锁" class="headerlink" title="类锁和对象锁"></a>类锁和对象锁</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SynchronizedTest</span> </span>&#123; </span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method1</span><span class="params">()</span> </span>&#123;&#125; </span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">method2</span><span class="params">()</span> </span>&#123; </span><br><span class="line"></span><br><span class="line">		<span class="keyword">synchronized</span>(LockStrategy.class) &#123;&#125; </span><br><span class="line"></span><br><span class="line">	&#125; </span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method3</span><span class="params">()</span> </span>&#123;&#125; </span><br><span class="line"></span><br><span class="line">&#125; </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>其中 method1 和 method2 都是类锁，method3 是对象锁 </p>
+<h2 id="偏向锁、轻量级锁和重量级锁"><a href="#偏向锁、轻量级锁和重量级锁" class="headerlink" title="偏向锁、轻量级锁和重量级锁"></a>偏向锁、轻量级锁和重量级锁</h2><p>在 jdk6 之前， synchronizez 一直是一个重量级锁，在 jdk6 中对 synchronized 做了很多优化，引入了偏向锁和轻量级锁。 </p>
+<h3 id="对象头"><a href="#对象头" class="headerlink" title="对象头"></a>对象头</h3><p>锁存在于 java 对象头中，如果对象是数组类型，则虚拟机用 3 个 Word（字宽）存储对象头，如果对象是非数组类型，则用 2 字宽存储对象头。在 32 位虚拟机中，一字宽等于四字节，即 32bit。 </p>
+<table>
+<thead>
+<tr>
+<th>长度</th>
+<th>内容</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>32/64 bit</td>
+<td>Mark Word</td>
+<td>HashCode，分代年龄和锁标记位</td>
+</tr>
+<tr>
+<td>32/64 bit</td>
+<td>Class Metadata Address</td>
+<td>存储对象的类型指针</td>
+</tr>
+<tr>
+<td>32/64 bit</td>
+<td>Array length</td>
+<td>数组的长度（如果当前对象是数组）</td>
+</tr>
+</tbody></table>
+<p><strong>Class Metadata Address</strong> 用于存储对象的类型指针，该指针指向它的类元数据，JVM通过这个指针确定对象是哪个类的实例 </p>
+<h3 id="Mark-Word"><a href="#Mark-Word" class="headerlink" title="Mark Word"></a>Mark Word</h3><p>Java 对象头里的 Mark Word 里默认存储对象的 HashCode，分代年龄和锁标记位。32位 JVM 的 Mark Word 存储结果如下 </p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C6C3F573-73C4-4004-8CCA-552720845E46.png" alt="Mark Word 结构"> </p>
+<p>其中 epoch 为偏向时间戳。 </p>
+<h3 id="偏向锁"><a href="#偏向锁" class="headerlink" title="偏向锁"></a>偏向锁</h3><p>偏向锁是为了消除无竞争情况下的同步原语，进一步提升程序性能。 </p>
+<p>偏向锁会偏向于第一个获取到他的线程，只要没有别的线程获取该锁，那么这第一个线程将永远不需要同步。 </p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method</span><span class="params">()</span> </span>&#123; </span><br><span class="line"></span><br><span class="line"><span class="comment">// do ... </span></span><br><span class="line"></span><br><span class="line">&#125; </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>如上述代码，线程A 第一个获取到这个锁，那么线程A后续执行 method，就不需要再进行获取锁的操作（只要中途没有别的线程来获取锁）。当有线程B来执行 method 时，偏向锁宣告结束，进入轻量级锁。 </p>
+<p><strong>实现原理</strong>：当线程请求到锁对象后，将锁对象的状态标志位改为01，即偏向模式。然后使用CAS操作将线程的ID记录在锁对象的Mark Word中。以后该线程可以直接进入同步块，连CAS操作都不需要。但是，一旦有第二条线程需要竞争锁，那么偏向模式立即结束，进入轻量级锁的状态。 </p>
+<p><strong>优点</strong>：偏向锁可以调高有同步但是没有竞争的程序性能，但是如果锁对象同时被多个线程竞争，那么偏向锁是多余的 </p>
+<p>偏向锁可以通过 JVM 参数来关闭：<code>-XX:-UseBiasedLocking=false</code> </p>
+<h3 id="轻量级锁"><a href="#轻量级锁" class="headerlink" title="轻量级锁"></a>轻量级锁</h3><p>使用 CAS 操作代替互斥同步，在线程请求锁时 </p>
+<p><strong>实现原理</strong>：在线程请求锁时，判断锁对象的 Mark Word 是否是无锁状态（锁标志位为01，是否偏向为0），然后在线程的栈帧中创建一块 Lock Record 空间，并将锁对象的 Mark Word 复制到 Lock Record中，然后通过 CAS 操作将锁对象的 Mark Word 替换为指向 Lock Record 的指针，并将 Lock Record 的 owner 指针指向 锁对象的 Mark Word。如下图： </p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/97E1A8E4-10B7-4AC9-AD21-6BACA0C2DF3A.jpg" alt="获取轻量级锁过程"> </p>
+<p><strong>获取锁失败的处理</strong>：如果成功则表示获取锁成功，如果失败，首先会检查锁对象的 Mark Word 是否指向当前线程的栈帧。如果是表示获取锁成功，如果还不是表示获取锁失败。此时轻量级锁膨胀为重量级锁，<strong>当前线程会尝试用自旋获取锁，后面的线程会阻塞等待</strong>。 </p>
+<p><strong>前提</strong>：轻量级锁比重量级锁性能高的前提是，在轻量级锁被占用期间，不会发生锁的竞争。一旦发生锁竞争，会膨胀为重量级锁，除了使用互斥量外还额外增加了 CAS 操作。 </p>
+<h3 id="获取锁失败了，为什么要重复检查-Mark-Word"><a href="#获取锁失败了，为什么要重复检查-Mark-Word" class="headerlink" title="获取锁失败了，为什么要重复检查 Mark Word"></a>获取锁失败了，为什么要重复检查 Mark Word</h3><p>因为可能是可重入锁 </p>
+<h3 id="三者区别"><a href="#三者区别" class="headerlink" title="三者区别"></a>三者区别</h3><ul>
+<li><p>重量级锁是一种悲观锁，而轻量级锁和偏向锁是乐观锁 </p>
+</li>
+<li><p>轻量级锁是在无锁竞争情况下，使用 CAS 操作来代替互斥量使用。而偏向锁是在无锁竞争情况下，完全取消同步（只有第一次获取锁的时候会使用 CAS 操作） </p>
+</li>
+<li><p>轻量级锁适用场景是线程交替进入同步块，如果同一时间多个线程竞争同一把锁就会膨胀为重量级锁 </p>
+</li>
+<li><p>一个线程重复访问同步块，轻量级锁每次都要进行 CAS 操作。而偏向锁是为了避免在无锁竞争情况下，不必要的 CAS 操作。<strong>只有第一次获取锁的时候会使用 CAS 操作</strong> </p>
+</li>
+<li><p>synchronized 通过监视器锁来实现同步（monitorenter 和 monitorexit），而监视器锁有依赖于底层的互斥锁，进入互斥锁需要用户态与和心态的切换，所以synchronized是重量级锁 </p>
+</li>
+</ul>
+<h2 id="乐观锁和悲观锁"><a href="#乐观锁和悲观锁" class="headerlink" title="乐观锁和悲观锁"></a>乐观锁和悲观锁</h2><p>悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。 </p>
+<p>乐观锁：假定不会发生并发冲突，只在提交操作时检测是否违反数据完整性。（使用版本号或者时间戳来配合实现） </p>
+<h2 id="读写锁"><a href="#读写锁" class="headerlink" title="读写锁"></a>读写锁</h2><p>读写锁是数据库常见的锁，又叫 共享-排它锁，S锁和X锁 </p>
+<p><strong>共享锁</strong>：如果事务T对数据A加上共享锁后，则其他事务只能对A再加共享锁，不能加排它锁。获准共享锁的事务只能读数据，不能修改数据。 </p>
+<p><strong>排它锁</strong>：如果事务T对数据A加上排它锁后，则其他事务不能再对A加任何类型的锁。获得排它锁的事务即能读数据又能修改数据。 </p>
+<p>读锁不能直接升级为写锁，需要重新获取写锁。 </p>
+<p>Java当中的读写锁通过ReentrantReadWriteLock实现 </p>
+<h2 id="互斥锁"><a href="#互斥锁" class="headerlink" title="互斥锁"></a>互斥锁</h2><p>同一时刻最多只有一个线程持有锁，在JDK中synchronized和JUC的Lock就是互斥锁。 </p>
+<h2 id="无锁"><a href="#无锁" class="headerlink" title="无锁"></a>无锁</h2><p>有些方法不涉及到共享数据，就不会出现线程安全问题，一定线程安全的有： </p>
+<ul>
+<li><p>无状态编程 </p>
+</li>
+<li><p>ThreadLocal等线程封闭方案 </p>
+</li>
+<li><p>volatile（volatile只能保证可见性和防止重排序，并不能保证线程安全） </p>
+</li>
+<li><p>CAS </p>
+</li>
+<li><p>协程，单线程内维持多个任务的调度 </p>
+</li>
+</ul>
+<h2 id="分段锁"><a href="#分段锁" class="headerlink" title="分段锁"></a>分段锁</h2><p>ConcurrentHashMap，在 java8 之前，ConcurrentHashMap 采用的是 分段锁技术来减少锁粒度。<strong>java8 摈弃了分段锁</strong>，采用的是 CAS 操作 和 synchronized 锁。</p>
+<h2 id="闭锁"><a href="#闭锁" class="headerlink" title="闭锁"></a>闭锁</h2><p>闭锁是一种同步工具类，可以延迟线程的进度直到其到达终止状态。闭锁的作用相当于一扇门：在闭锁到达结束状态之前，这扇门一直是关闭的，并且没有任何线程能通过，当到达结束状态时，这扇门会打开允许所有的线程通过。当闭锁到达结束状态后，将不会再改变状态，因此这扇门将永远保持打开状态。闭锁可以用来确保某些活动指导其他活动都完成后才继续执行。CountDownLatch就是一种灵活的闭锁实现。 </p>
+<h2 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h2><p>多个线程因资源竞争而相互等待的现象。出现死锁必须满足4个条件： </p>
+<ul>
+<li><p>互斥条件：一个资源一次只能被一个进程使用 </p>
+</li>
+<li><p>请求与保持条件：一个进程因请求资源而阻塞等待，对已获取的资源保持不放 </p>
+</li>
+<li><p>不剥夺条件：进程已获取的资源，不会被剥夺 </p>
+</li>
+<li><p>循环等待条件：若干进程形成循环等待资源的关系。 </p>
+</li>
+</ul>
+<h2 id="活锁"><a href="#活锁" class="headerlink" title="活锁"></a>活锁</h2><p>LiveLock是一种形式活跃性问题，该问题尽管不会阻塞线程，但也不能继续执行，因为线程将不断重复执行相同的操作，而且总会失败。活锁通常发送在处理事务消息的应用程序中：如果不能成功地处理某个消息，那么消息处理机制将回滚整个事务，并将它重新放到队列的开头：如果不能成功地处理某个消息，那么消息处理机制将回滚整个事务，并将它重新放到队列的开头。如果消息处理器在处理某种特定类型的消息时存在错误并导致它失败，那么每当这个消息从队列中取出并传递到存在错误的处理器时，都会发生事务回滚。由于这条消息又被放回到队列开头，因此处理器将被反复调用，并返回相同的结果。 </p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.infoq.cn/article/java-se-16-synchronized">https://www.infoq.cn/article/java-se-16-synchronized</a> </p>
+<p><a href="https://www.zhihu.com/question/55075763">https://www.zhihu.com/question/55075763</a> </p>
+<p><a href="https://hiddenpps.blog.csdn.net/article/details/51204385">https://hiddenpps.blog.csdn.net/article/details/51204385</a> </p>
+<p><a href="https://my.oschina.net/dabiaoge/blog/1613180">https://my.oschina.net/dabiaoge/blog/1613180</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>锁</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java内存模型</title>
+    <url>/java-memory-model.html</url>
+    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
+<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
+<blockquote>
+<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+</blockquote>
+<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
+<p>指令重排序包括：</p>
+<ul>
+<li>编译器优化重排序</li>
+<li>指令级并行重排序</li>
+<li>内存系统的重排序</li>
+</ul>
+<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
+<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
+<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
+<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
+<p>8大 happens-before 原则：</p>
+<ul>
+<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
+<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
+<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
+<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
+<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
+<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
+<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
+<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
+</ul>
+<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
+<ul>
+<li>将工作内存1中修改的共享变量刷新到主内存</li>
+<li>将主内存最新的共享变量更新到工作内存2</li>
+</ul>
+<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
+<ul>
+<li>线程解锁前，刷新共享变量到主存</li>
+<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
+</ul>
+<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
+<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>jmm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>jvm参数</title>
+    <url>/jvm-options.html</url>
+    <content><![CDATA[<h2 id="X-与-XX-的区别"><a href="#X-与-XX-的区别" class="headerlink" title="-X 与 -XX 的区别"></a>-X 与 -XX 的区别</h2><blockquote>
+<p><strong>Standard options</strong> :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).<br><strong>Non-standard options</strong> :Options that begin with -X are non-standard (not guaranteed to be supported on all JVM implementations), and are subject to change without notice in subsequent releases of the Java SDK.<br><strong>Developer options</strong> :Options that begin with -XX are developer options and often have specific system requirements for correct operation and may require privileged access to system configuration parameters; they are not recommended for casual use. These options are also subject to change without notice.</p>
+</blockquote>
+<h2 id="XX-参数格式"><a href="#XX-参数格式" class="headerlink" title="-XX 参数格式"></a>-XX 参数格式</h2><p>1）布尔类型 <code>-XX:+option (true)   -XX:-option (false)</code></p>
+<p><code>-XX:+DisableExplicitGC</code></p>
+<p>2）数值类型 <code>-XX:option=number</code>  可以带单位 k,m,g(不区分大小写)</p>
+<p><code>-XX:SurvivorRatio=8 -XX:MetaspaceSize=256M</code></p>
+<p>3）字符类型 <code>-XX:option=String</code>  通常用来设置文件名、路径等</p>
+<p><code>-XX:HeapDumpPath=./java_pid.hprof</code></p>
+<h2 id="关于内存的参数设置"><a href="#关于内存的参数设置" class="headerlink" title="关于内存的参数设置"></a>关于内存的参数设置</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-Xms</td>
+<td>初始堆大小，memory size</td>
+</tr>
+<tr>
+<td>-Xmx</td>
+<td>堆最大值，max memory size，一般和 -Xms 设置同样的大小</td>
+</tr>
+<tr>
+<td>-Xmn</td>
+<td>新生代大小，new memory size</td>
+</tr>
+<tr>
+<td>-Xss</td>
+<td>线程栈大小，stack size</td>
+</tr>
+<tr>
+<td>-XX:PermSize=256m</td>
+<td>永生代初始大小，JDK 8无效，JDK8 将永生代移入到 metaspace</td>
+</tr>
+<tr>
+<td>-XX:MaxPermSize=512m</td>
+<td>永生代最大值，JDK 8无效</td>
+</tr>
+<tr>
+<td>-XX:MaxMetaspaceSize=512m</td>
+<td>元空间初始化大小，JDK 8</td>
+</tr>
+<tr>
+<td>-XX:newRatio=2</td>
+<td>默认是2，新生代站1/3</td>
+</tr>
+<tr>
+<td>-XX:Survivor=8</td>
+<td>默认是8，两个 Survivor 共占用 2/10</td>
+</tr>
+<tr>
+<td>-XX:NewSize</td>
+<td>新生代初始化大小，一般和 -XX:MaxNewSize 设置同样大小，避免新生代内存伸缩</td>
+</tr>
+<tr>
+<td>-XX:MaxNewSize</td>
+<td>新生代最大值</td>
+</tr>
+<tr>
+<td>-XX:InitialCodeCacheSize=128m</td>
+<td>“代码缓存”大小，“代码缓存”用来存储方法编译生成的本地代码</td>
+</tr>
+</tbody></table>
+<h3 id="jvm-设置新生代大小"><a href="#jvm-设置新生代大小" class="headerlink" title="jvm 设置新生代大小"></a>jvm 设置新生代大小</h3><p>jvm 设置新生代大小有很多组参数，大概分为三组：</p>
+<ul>
+<li><code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code> </li>
+<li><code>-Xmn1024m</code></li>
+<li><code>-XX:NewRatio=2</code> （假设Heap总共是3G）</li>
+</ul>
+<p>在 JDK 4 之后，使用 <code>-Xmn=1024m</code>，相当于同时设置 <code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code>，<strong>推荐使用 -Xmn</strong></p>
+<h2 id="关于-GC-日志相关参数"><a href="#关于-GC-日志相关参数" class="headerlink" title="关于 GC 日志相关参数"></a>关于 GC 日志相关参数</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-XX:+PrintGC</td>
+<td>打印GC日志</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCDetails</td>
+<td>打印GC详细日志，包括-XX:+PrintGC</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCTimeStamps</td>
+<td>打印GC时间戳</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCDateStamps</td>
+<td>打印GC时间戳，以日期为准</td>
+</tr>
+<tr>
+<td>-XX:+PrintHeapAtGC</td>
+<td>在运行GC的前后打印堆信息</td>
+</tr>
+<tr>
+<td>-XX:+PrintTenuringDistribution</td>
+<td>新生代GC的时候，打印存活对象的年龄分布</td>
+</tr>
+<tr>
+<td>-XX:HeapDumpPath=/opt/log/oomlogs</td>
+<td>内存溢出时保存当时的内存快照</td>
+</tr>
+<tr>
+<td>-+HeapDumpOnOutOfMemoryError</td>
+<td>发生OOM时，保存dump内存快照</td>
+</tr>
+</tbody></table>
+<h2 id="关于-GC-行为相关参数"><a href="#关于-GC-行为相关参数" class="headerlink" title="关于 GC 行为相关参数"></a>关于 GC 行为相关参数</h2><h3 id="CMS-相关参数"><a href="#CMS-相关参数" class="headerlink" title="CMS 相关参数"></a>CMS 相关参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-XX:+DisableExplicitGC</td>
+<td>禁用显示调用，System.gc()将成为空调用</td>
+</tr>
+<tr>
+<td>-XX:+UseConcMarkSweepGC</td>
+<td>使用CMS收集器收集老年代，特点是低停顿，停顿少。吞吐量相对较低，适合短连接事务型系统</td>
+</tr>
+<tr>
+<td>-XX:CMSInitiatingOccupancyFraction=80</td>
+<td>在默认设置下，CMS收集器在老年代使用了68%的空间后就会被激活，可以适当调高，实际应用中老年代增长不会太快</td>
+</tr>
+</tbody></table>
+<h3 id="G1-相关参数"><a href="#G1-相关参数" class="headerlink" title="G1 相关参数"></a>G1 相关参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-XX:G1HeapRegionSize=n</td>
+<td>设置Region大小，并非最终值</td>
+</tr>
+<tr>
+<td>-XX:MaxGCPauseMillis</td>
+<td>设置G1收集过程目标时间，默认值200ms，不是硬性条件</td>
+</tr>
+<tr>
+<td>-XX:G1NewSizePercent</td>
+<td>新生代最小值，默认值5%</td>
+</tr>
+<tr>
+<td>-XX:G1MaxNewSizePercent</td>
+<td>新生代最大值，默认值60%</td>
+</tr>
+<tr>
+<td>-XX:ParallelGCThreads</td>
+<td>STW期间，并行GC线程数</td>
+</tr>
+<tr>
+<td>-XX:ConcGCThreads=n</td>
+<td>并发标记阶段，并行执行的线程数</td>
+</tr>
+<tr>
+<td>-XX:InitiatingHeapOccupancyPercent</td>
+<td>设置触发标记周期的 Java 堆占用率阈值。默认值是45%。这里的java堆占比指的是non_young_capacity_bytes，包括old+humongous</td>
+</tr>
+</tbody></table>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://eyesmore.iteye.com/blog/1530996">https://eyesmore.iteye.com/blog/1530996</a><br><a href="https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm">https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm</a></p>
+]]></content>
+      <categories>
+        <category>java基础</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Mac 实现 NTFS 格式硬盘读写</title>
+    <url>/mac-NTFS.html</url>
+    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
+<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
+<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
+<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
+<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
+</ol>
+<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
+<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
+<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
+<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
+<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
+<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
+<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
+<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
+]]></content>
+      <categories>
+        <category>计算机操作</category>
+      </categories>
+      <tags>
+        <tag>mac</tag>
+        <tag>ntfs</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>nginx实现原理</title>
+    <url>/nginx-implement.html</url>
+    <content><![CDATA[<h2 id="简单理解-Nginx"><a href="#简单理解-Nginx" class="headerlink" title="简单理解 Nginx"></a>简单理解 Nginx</h2><p>nginx 是静态 web 服务器，意思是 engine x。并发量高，</p>
+<h2 id="Nginx-事件驱动模型"><a href="#Nginx-事件驱动模型" class="headerlink" title="Nginx 事件驱动模型"></a>Nginx 事件驱动模型</h2><p>事件驱动模型是 Nginx 服务器保障完整可用功能和具有良好性能的重要机制之一</p>
+<h3 id="事件驱动模型概述"><a href="#事件驱动模型概述" class="headerlink" title="事件驱动模型概述"></a>事件驱动模型概述</h3><p>包括事件收集器、事件发送器和事件处理器。</p>
+<p>事件收集器，专门负责收集所有事件。例如用户的鼠标点击事件和键盘输入事件。</p>
+<p>事件发送器将收集到的事件分发到各个目标对象。目标对象就是事件处理器的位置。</p>
+<p>事件处理器负责具体事件的响应，它往往要到实现阶段才能完全确定。</p>
+<p>Windows 系统就是基于事件驱动模型设计的典型案例，一个窗口就是时间发送器的目标对象。</p>
+<h3 id="nginx-事件驱动模型"><a href="#nginx-事件驱动模型" class="headerlink" title="nginx 事件驱动模型"></a>nginx 事件驱动模型</h3><p>“事件发送器”每传递一个请求，“目标对象”就将其放入到待处理事件列表，使用非阻塞 I/O 方式调用“事件处理器”来处理请求。</p>
+<p>大多数网络服务器采用这种方式，逐渐形成了所谓的“事件驱动处理库”。</p>
+<p>事件驱动处理库又叫多路 I/O 复用方法，常见的包括 select 模型、pull 模型 和 epoll 模型。</p>
+<h3 id="select-模型"><a href="#select-模型" class="headerlink" title="select 模型"></a>select 模型</h3><p>文件描述符有3类，分别是write、read和Exception。获取这三个 set 集合，有空间限制，最多1024个。轮询所有set集合，判断有事件发生的描述符</p>
+<p>windows 和 linux 都有</p>
+<h3 id="poll-模型"><a href="#poll-模型" class="headerlink" title="poll 模型"></a>poll 模型</h3><p>获取一个 链表的头头结点，轮询set集合，判断有事件发生的描述符</p>
+<p>windows 没有</p>
+<h3 id="epoll-模型"><a href="#epoll-模型" class="headerlink" title="epoll 模型"></a>epoll 模型</h3><p>select、poll需要轮询，效率低。将描述符交给内核处理，如果就事件发生，就通知事件处理器</p>
+<h2 id="Nginx-服务器架构"><a href="#Nginx-服务器架构" class="headerlink" title="Nginx 服务器架构"></a>Nginx 服务器架构</h2><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/B8F55598-8252-41BF-9CAD-9F3B9D9A7D27.png" alt="服务器架构"></p>
+<p>大致分为主进程、工作进程、后端服务器和缓存。</p>
+<h3 id="主进程"><a href="#主进程" class="headerlink" title="主进程"></a>主进程</h3><ul>
+<li>配置文件解析</li>
+<li>数据初始化</li>
+<li>模块配置注册</li>
+<li>信号处理 </li>
+<li>网络监听，建立、绑定和关闭 Socket</li>
+<li>工作进程生成（fork）和管理</li>
+</ul>
+<h3 id="工作进程"><a href="#工作进程" class="headerlink" title="工作进程"></a>工作进程</h3><p>负责模块调用和请求处理</p>
+<ul>
+<li>接受客户端请求</li>
+<li>模块调用，将请求一次放入到各个模块过滤</li>
+<li>IO 调用，请求转发后端服务器</li>
+<li>结果返回，响应客户端请求</li>
+<li>数据缓存，访问缓存索引，查询调用索引</li>
+<li>响应主程序请求，重启、升级退出等</li>
+</ul>
+<h3 id="缓存索引重建和管理进程"><a href="#缓存索引重建和管理进程" class="headerlink" title="缓存索引重建和管理进程"></a>缓存索引重建和管理进程</h3><p>缓存索引重建 Cache loader，缓存管理 Cache manager</p>
+<p>缓存索引重建进程，是在内存中建立缓存索引单元，缓存是存放在本地磁盘的</p>
+<p>缓存管理进程负责判断索引单元是否过期</p>
+<h3 id="后端服务器"><a href="#后端服务器" class="headerlink" title="后端服务器"></a>后端服务器</h3><p>将请求转发到后端服务器，实现反向代理和复杂均衡</p>
+<h3 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h3><p>为实现高性能，采用缓存机制，将应答数据缓存到本地</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《Nginx 高性能 Web 服务器详解》</p>
+<p><a href="https://app.yinxiang.com/shard/s47/nl/20420480/b3b2a11a-f9af-4df4-9eee-121945eff0c1/">Linux IO模式及 select、poll、epoll详解 - 人云思云 - SegmentFault 思否</a></p>
+<p><a href="https://martinguo.github.io/blog/2016/08/30/Nginx/">https://martinguo.github.io/blog/2016/08/30/Nginx/</a></p>
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>nginx</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>protobuf 安装使用</title>
+    <url>/protobuf-use.html</url>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
+<li>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></li>
+<li>解压，cd 到目录下</li>
+<li>./configure</li>
+<li>make</li>
+<li>make check</li>
+<li>sudo make install</li>
+<li>which protoc</li>
+<li>protoc –version</li>
+</ul>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>protobuf</tag>
+        <tag>序列化</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式</title>
+    <url>/singleton.html</url>
+    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
+<p>优点：没有任何加锁，执行效率高，用户体验好</p>
+<p>缺点：类加载就初始化，浪费空间</p>
+<p>简单实例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
+<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
+<p>以上述 LazySingleton 为例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
+<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
+<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
+<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
+<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
+<p>注册式单例可以避免这个问题</p>
+<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
+<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
+<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
+<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
+<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
+]]></content>
+      <categories>
+        <category>java基础</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>设计模式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ThreadLocal</title>
+    <url>/threadLocal.html</url>
+    <content><![CDATA[<h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal</p>
+<h2 id="ThreadLocal"><a href="#ThreadLocal" class="headerlink" title="ThreadLocal"></a>ThreadLocal</h2><p>提供线程本地变量，创建一个ThreadLocal需要及时销毁，不然会造成内存泄露。</p>
+<p>先看下类图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu.png" alt="ThreadLocal类图"></p>
+<p>可知 Thread 类中有一个 threadLocals 和 inheritableThreadLocals 都是 ThreadLocalMap 类型的变量，而 ThreadLocalMap 是一个定制化的 Hashmap，默认每个线程中这个两个变量都为 null，只有当前线程第一次调用了 ThreadLocal 的 set 或者 get 方法时候才会进行创建。其 key 是 ThradLocal，value 是存放的数据。</p>
+<p>每个线程本地数据不是存放在 ThreadLocal 里面，而是线程的 threadLocals 变量里。也就是说 ThreadLocal 类型的本地变量是存放到具体的线程内存空间的。</p>
+<p>ThreadLocal 只是一个工具壳，他通过 set 方法将数据存放在线程的 threadLocals 变量里，通过 get 方法从线程的 thradLocals 里取数据。</p>
+<h3 id="注意点"><a href="#注意点" class="headerlink" title="注意点"></a>注意点</h3><p>ThreadLocal 变量时线程封闭的，子线程不继承父线程的数据。且创建了ThreadLocal 变量用后需要及时销毁，否则会造成内存泄露。</p>
+<h2 id="InheritableThreadLocal"><a href="#InheritableThreadLocal" class="headerlink" title="InheritableThreadLocal"></a>InheritableThreadLocal</h2><p>InheritableThreadLocal 继承自 ThreadLocal，提供了一个特性，子线程可以继承父线程的 ThreadLocal 变量。</p>
+<p>先看下代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InheritableThreadLocal</span>&lt;<span class="title">T</span>&gt; <span class="keyword">extends</span> <span class="title">ThreadLocal</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> T <span class="title">childValue</span><span class="params">(T parentValue)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> parentValue;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">ThreadLocalMap <span class="title">getMap</span><span class="params">(Thread t)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">return</span> t.inheritableThreadLocals;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">createMap</span><span class="params">(Thread t, T firstValue)</span> </span>&#123;</span><br><span class="line">        t.inheritableThreadLocals = <span class="keyword">new</span> ThreadLocalMap(<span class="keyword">this</span>, firstValue);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>可知 InheritableThreadLocal 就是讲 ThreadLocal 操作的 线程的 threadLocals 变量给成线程的 inheritableThreadLocals 变量，那么实现原理得从 Thread 来看。</p>
+<p>在 Thread 类的 init 方法中有这样的代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (parent.inheritableThreadLocals != <span class="keyword">null</span>)</span><br><span class="line">    <span class="keyword">this</span>.inheritableThreadLocals =</span><br><span class="line">        ThreadLocal.createInheritedMap(parent.inheritableThreadLocals);</span><br></pre></td></tr></table></figure>
+
+<p>可知，在线程创建的时候，如果 inheritableThreadLocals 变量不为空会复制给子线程，这样就保证了 InheritableThreadLocal 类能够继承父类的 ThreadLocal 变量（似乎叫 InheritableThreadLocal 变量更合适）</p>
+<h3 id="InheritableThreadLocal-使用场景"><a href="#InheritableThreadLocal-使用场景" class="headerlink" title="InheritableThreadLocal 使用场景"></a>InheritableThreadLocal 使用场景</h3><p>比如存放用户登录信息的 threadlocal 变量，很有可能子线程中也需要使用用户登录信息，再比如一些中间件需要用统一的追踪 ID 把整个调用链路记录下来的情景。</p>
+<h2 id="ThreadLocalRandom-中的应用"><a href="#ThreadLocalRandom-中的应用" class="headerlink" title="ThreadLocalRandom 中的应用"></a>ThreadLocalRandom 中的应用</h2><h3 id="Random-在高并发下的缺陷"><a href="#Random-在高并发下的缺陷" class="headerlink" title="Random 在高并发下的缺陷"></a>Random 在高并发下的缺陷</h3><p>先来看下 nextInt(int n) 的方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">nextInt</span><span class="params">(<span class="keyword">int</span> bound)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (bound &lt;= <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(BadBound);</span><br><span class="line">    <span class="comment">// 根据老的种子生成新的种子 r </span></span><br><span class="line">    <span class="keyword">int</span> r = next(<span class="number">31</span>);</span><br><span class="line">    <span class="keyword">int</span> m = bound - <span class="number">1</span>;</span><br><span class="line">    <span class="comment">// 根据种子 r 计算随机数</span></span><br><span class="line">    <span class="keyword">if</span> ((bound &amp; m) == <span class="number">0</span>)  <span class="comment">// i.e., bound is a power of 2</span></span><br><span class="line">        r = (<span class="keyword">int</span>)((bound * (<span class="keyword">long</span>)r) &gt;&gt; <span class="number">31</span>);</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> u = r;</span><br><span class="line">             u - (r = u % bound) + m &lt; <span class="number">0</span>;</span><br><span class="line">             u = next(<span class="number">31</span>))</span><br><span class="line">            ;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> r;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据老种子获取新种子的方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> bits)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> oldseed, nextseed;</span><br><span class="line">    <span class="comment">// 是原子变量</span></span><br><span class="line">    AtomicLong seed = <span class="keyword">this</span>.seed;</span><br><span class="line">    <span class="comment">// 轮训 CAS 操作</span></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        oldseed = seed.get();</span><br><span class="line">        nextseed = (oldseed * multiplier + addend) &amp; mask;</span><br><span class="line">    &#125; <span class="keyword">while</span> (!seed.compareAndSet(oldseed, nextseed));</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>)(nextseed &gt;&gt;&gt; (<span class="number">48</span> - bits));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据上诉代码可知，生成一个随机数，需要先获取新种子，然后通过新种子来计算随机数。而获取新种子是存在并发问题的，因此 Random 的做法是将种子定义为<strong>原子变量</strong>，线程通过<strong>轮训 CAS 操作</strong>来得到新种子。这样虽然能保证线程安全，但是<strong>在高并发下会造成大量线程进行自旋重试和无畏的 CAS 操作</strong>。</p>
+<h3 id="ThreadLocalRandom-来了"><a href="#ThreadLocalRandom-来了" class="headerlink" title="ThreadLocalRandom 来了"></a>ThreadLocalRandom 来了</h3><p>继承自 Random，先看下类图：<br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/leitu2.png" alt="Random类图"></p>
+<p>ThreadLocalRandom 并没有维持一个原子变量种子，而是将每个线程的种子存放在线程的 threadLocalRandomSeed 变量中，ThreadLocalRandom 类像 ThreadLocal 类一样是一个工具类。值得注意的是 <strong>threadLocalRandomSeed 是 long 类型，因为是线程封闭的</strong>。</p>
+<h2 id="Spring-Request-Scope-作用域-Bean-中-ThreadLocal-的使用"><a href="#Spring-Request-Scope-作用域-Bean-中-ThreadLocal-的使用" class="headerlink" title="Spring Request Scope 作用域 Bean 中 ThreadLocal 的使用"></a>Spring Request Scope 作用域 Bean 中 ThreadLocal 的使用</h2><p>我们知道 Spring 可以在配置 Bean 的时候可以指定 scpoe 属性来指定该 Bean 的作用域，singleton、prototype、request、session 等。其中 request 作用域就是通过 ThreadLocal 来实现的。</p>
+<p>一个 web 请求的简要时序图如下：<br><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/liuchengtu.png" alt="时序图"></p>
+<p>每次发起 web 请求在 tomcat 中的 context（具体应用）前且在 host 匹配后，都会在 requestInitialized 方法中设置 RequestContextHolder 属性，在请求结束 requestDestroy 方法中会销毁。</p>
+<p>setRequestAttributes 方法会设置属性到 ThreadLocal 变量，默认是不可继承的，可以设置为可继承，这样就会将属性保存到 InheritableThreadLocal 变量中。也就是说默认情况下，子线程访问不到存放在 RequestContextHolder 中的属性。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文通过循序渐进的方式，先讲解了 ThreadLocal 的简单使用，然后讲解了 ThreadLocal 的实现原理，并指出 ThreadLocal 不支持继承性；然后紧接着讲解了 InheritableThreadLocal 是如何补偿了 ThreadLocal 不支持继承的特性；然后讲解了 ThreadLocalRandom 是如何借鉴 ThreadLocal 的思想补充了 Random 的不足；最后简单的介绍了 Spring 框架中如何使用 ThreadLocal 实现了 Reqeust Scope 的 Bean。</p>
+<h2 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h2><h3 id="ThreadLocalMap-采用线性探测法"><a href="#ThreadLocalMap-采用线性探测法" class="headerlink" title="ThreadLocalMap 采用线性探测法"></a>ThreadLocalMap 采用线性探测法</h3><p>ThreadLocalMap 内部是通过 “线性探测法” 来解决hash冲突的，不同于 HashMap 是通过链表法解决 hash 冲突。</p>
+<p>ThreadLocalMap 采用 ThreadLocal 的弱引用作为 key。</p>
+<p><strong>线性探测法</strong></p>
+<p>就是在当前位置线性往后探测如果有空的位置就set</p>
+<p><a href="https://zhuanlan.zhihu.com/p/37004598">https://zhuanlan.zhihu.com/p/37004598</a></p>
+<p><strong>拉链法与线程探测法优缺点</strong></p>
+<p>拉链法不会产生堆积现象，平均查找长度较短。但相对于线性探测法较浪费空间</p>
+<h3 id="防止内存泄露的最后一道防线——弱引用"><a href="#防止内存泄露的最后一道防线——弱引用" class="headerlink" title="防止内存泄露的最后一道防线——弱引用"></a>防止内存泄露的最后一道防线——弱引用</h3><p>如果 ThreadLocalMap 采用的是强引用，这样引用 ThreadLocal 的对象被回收了，由于 ThreadLocal 一直被 ThreadLocalMap 强引用着而不能被回收，从而导致 Entry 内存泄露。</p>
+<p>如果是弱引用，就算你不显示的调用 remove 方法，在 gc 执行的时候，如果一个对象只被弱引用着，就会无脑回收这个对象。就不会产生内存泄露。</p>
+<p>但是日常开发中，还是要用完即删除，调用 remove 方法，会将 ThreadLocal 从 ThreadLocalMap 移除。</p>
+<h3 id="补充——ThreadLocal会造成内存泄露"><a href="#补充——ThreadLocal会造成内存泄露" class="headerlink" title="补充——ThreadLocal会造成内存泄露"></a>补充——ThreadLocal会造成内存泄露</h3><p>按照前面所说，ThreadLocalMap 采用的是弱引用，这样ThreadLocal会被回收，但是会出现 null-key 的情况。如果线程存货周期较长，那么会存在这样的强引用关系 Thread–&gt;ThreadLocalMap–&gt;Entry–&gt;Value，这条强引用链会导致Entry不会回收，Value也不会回收，但Entry中的Key却已经被回收的情况，造成内存泄漏。</p>
+<p>ThreadLocal 的 get()、set()、remove() 方法调用的时候会清除掉线程 ThreadLocalMap 中所有Entry中Key为null的Value，并将整个 Entry 设置为null，利于下次内存回收</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Java 并发编程之美：并发编程高级篇之一</p>
+<p><a href="https://zhuanlan.zhihu.com/p/37004598">https://zhuanlan.zhihu.com/p/37004598</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>spring</tag>
+        <tag>threadlocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>AQS相关</title>
+    <url>/AQS.html</url>
+    <content><![CDATA[<h2 id="AQS-简单介绍"><a href="#AQS-简单介绍" class="headerlink" title="AQS 简单介绍"></a>AQS 简单介绍</h2><p>AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。</p>
+<p>内部有一个 <strong>state 变量</strong>，用于表示一些状态信息，这个状态信息具体由实现类决定，比如一个 ReentrantLock 类这个 state 就表示获取锁的次数。</p>
+<p>内部维持两个队列，<strong>Sync Queue</strong> 和 <strong>Condition Queue</strong>，Sync Queue 是一个双向 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。</p>
+<p>这个类使用到了<strong>模板方法设计模式</strong>：定义一个操作中算法的骨架，而将一些步骤的实现延迟到子类中。</p>
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><h3 id="AQS-类简单介绍"><a href="#AQS-类简单介绍" class="headerlink" title="AQS 类简单介绍"></a>AQS 类简单介绍</h3><p>先看一下 AQS 的类图</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/aqs.png" alt="AQS 类图"></p>
+<p>AQS 是一个 FIFO 的双向队列，内部通过 tail 和 head 来记录队尾和队首，队列元素为 Node，状态信息为 state，通过内部类 ConditionObject 来结合锁实现线程同步</p>
+<p><strong>Node 节点</strong>：<br>Note 的属性 thread 来存储进入 AQS 的线程（竞争锁失败进入等待队列）；Node 节点内部 SHARED 表示是获取共享资源被阻塞挂起后放入 AQS 队列的，EXCLUSIVE 表示获取独占资源被阻塞后挂起放入到 AQS 队列的；prev 记录当前节点的前驱节点，next 记录当前节点的后续节点。</p>
+<p>waitStatus 表示当前线程等待状态，分别为 CANCELLED（线程被取消），SIGNAL（线程需要被唤醒），CONDITION（线程在条件队列里面等待），PROPAGATE（释放共享资源时候需要通知其他节点），</p>
+<p><strong>state 状态信息</strong>：</p>
+<p>AQS 中维持了一个单一的状态信息 state，可以通过 getState、setState 和 compareAndSetState 函数修改其值</p>
+<ul>
+<li>ReentrantLock：当前线程获取锁的次数</li>
+<li>ReentrantReadWriteLock：state 高16位表示读状态也就是<strong>获取读锁的线程数</strong>，低16位表示写状态也就是<strong>获取写锁的次数</strong></li>
+<li>Semaphore：当前可用信号个数</li>
+<li>FutureTask：开始，运行，完成，取消</li>
+<li>CountDownlatch 和 CyclicBarrie：计数器当前的值</li>
+</ul>
+<p><strong>ConditionObject 内部类</strong>：</p>
+<p>AQS 通过内部类 ConditionObject 来结合锁实现线程同步，ConditionObject 可以直接访问 AQS 内部变量（state 状态值和 Node 队列）。ConditionObject 是条件变量，每个条件变量对应一个条件队列（单向链表），线程调用条件变量的 await 方法后阻塞会放入到该队列，如类图，条件队列的头尾元素分别为 firstWaiter 和 lastWaiter。</p>
+<h3 id="AQS-实现同步原理"><a href="#AQS-实现同步原理" class="headerlink" title="AQS 实现同步原理"></a>AQS 实现同步原理</h3><p>AQS 通过操作 state 状态变量实现同步的操作。操作 state 分为共享模式和独占模式。</p>
+<p>独占模式获取和释放锁方法为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> arg)</span> </span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">acquireInterruptibly</span><span class="params">(<span class="keyword">int</span> arg)</span> </span></span><br><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">release</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>共享模式获取和释放锁方法为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">acquireShared</span><span class="params">(<span class="keyword">int</span> arg)</span> </span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">acquireSharedInterruptibly</span><span class="params">(<span class="keyword">int</span> arg)</span> </span></span><br><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">releaseShared</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Interruptibly关键字的方法</strong>：</p>
+<p>带 Interruptibly 关键字的方法会对中断进行相应，也就是在线程调用 acquireInterruptibly（或 acquireSharedInterruptibly） 方法获取资源时或获取资源失败被挂起的时候，其它线程中断了该线程，那么该线程会抛出 InterruptedException 异常而返回。</p>
+<p><strong>独占模式获取锁与共享模式获取锁区别</strong>：</p>
+<p>独占模式获取锁是与具体线程绑定的，比如独占锁 ReentrantLock，如果线程获取到锁，会通过 CAS 操作将 state 从0变为1并且将当前锁的持有者设为该线程。当该线程再次获取锁时发现锁的持有者为自己，就会将 state +1，当另外的线程尝试获取锁，发现当前锁持有者不是自己，会被放入到 AQS 队列并挂起。</p>
+<p>共享模式获取锁是与具体线程不相关的，多个线程请求请求资源时候是通过 CAS 方式竞争获取的，也就是说 CAS 操作只要成功就 OK。比如 Semaphore 信号量，当一个线程通过 acquire() 方法获取一个信号量时候，会首先看当前信号量个数是否满足需要，不满足则把当前线程放入阻塞队列，如果满足则通过自旋 CAS 获取信号量。</p>
+<h4 id="独占模式-acquire-源码分析"><a href="#独占模式-acquire-源码分析" class="headerlink" title="独占模式 acquire 源码分析"></a>独占模式 acquire 源码分析</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp;</span><br><span class="line">            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">            selfInterrupt();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一个模板方法,获取锁 tryAcquire(arg) 的具体实现定义在子类中。</p>
+<p>获取到锁 tryAcquire 就直接返回，否则调用 addWaiter 将当前节点添加到等待队列末尾。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Node <span class="title">addWaiter</span><span class="params">(Node mode)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 将当前线程封装为 Node，设为独占模式</span></span><br><span class="line">    Node node = <span class="keyword">new</span> Node(Thread.currentThread(), mode);</span><br><span class="line">    <span class="comment">// Try the fast path of enq; backup to full enq on failure</span></span><br><span class="line">    Node pred = tail;</span><br><span class="line">    <span class="comment">// 如果 tail 不为空，将 node 插入末尾</span></span><br><span class="line">    <span class="keyword">if</span> (pred != <span class="keyword">null</span>) &#123;</span><br><span class="line">        node.prev = pred;</span><br><span class="line">        <span class="comment">// 可能多个线程同时插入，用 CAS 操作</span></span><br><span class="line">        <span class="keyword">if</span> (compareAndSetTail(pred, node)) &#123;</span><br><span class="line">            pred.next = node;</span><br><span class="line">            <span class="keyword">return</span> node;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 如果 tail 节点为空，或调用 CAS 操作将 当前节点设为 tail 节点失败</span></span><br><span class="line">    enq(node);</span><br><span class="line">    <span class="keyword">return</span> node;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Node <span class="title">enq</span><span class="params">(<span class="keyword">final</span> Node node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        Node t = tail;</span><br><span class="line">        <span class="comment">// 可能多个线程同时插入，重新判断是否为空</span></span><br><span class="line">        <span class="keyword">if</span> (t == <span class="keyword">null</span>) &#123; <span class="comment">// Must initialize</span></span><br><span class="line">            <span class="keyword">if</span> (compareAndSetHead(<span class="keyword">new</span> Node()))</span><br><span class="line">                tail = head;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            node.prev = t;</span><br><span class="line">            <span class="keyword">if</span> (compareAndSetTail(t, node)) &#123;</span><br><span class="line">                t.next = node;</span><br><span class="line">                <span class="keyword">return</span> t;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>addWaiter 和 enq 方法是为了将当前线程 node 插入到队列末尾。插入成功后不会立即挂起当前线程，因为在 addWaiter 过程中前面的线程可能已经执行完。此时会调用自选操作 acquireQueued 让该线程尝试重新获取锁，如果获取锁成功就退出，否则继续。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">            <span class="keyword">final</span> Node p = node.predecessor();</span><br><span class="line">            <span class="comment">// 如果其前驱节点为头结点，尝试获取锁，将该节点设为头结点，然后返回</span></span><br><span class="line">            <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                <span class="comment">// Called only by acquire methods</span></span><br><span class="line">                setHead(node);</span><br><span class="line">                p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                failed = <span class="keyword">false</span>;</span><br><span class="line">                <span class="keyword">return</span> interrupted;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 如果获取锁失败，则判断是否需要挂起</span></span><br><span class="line">            <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                parkAndCheckInterrupt())</span><br><span class="line">                interrupted = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (failed)</span><br><span class="line">            cancelAcquire(node);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>先尝试获取锁，失败再判断是否需要挂起，这个判断是通过它的前驱节点 waitStatus 确定的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">shouldParkAfterFailedAcquire</span><span class="params">(Node pred, Node node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ws = pred.waitStatus;</span><br><span class="line">    <span class="keyword">if</span> (ws == Node.SIGNAL)</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * This node has already set status asking a release</span></span><br><span class="line"><span class="comment">         * to signal it, so it can safely park.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (ws &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Predecessor was cancelled. Skip over predecessors and</span></span><br><span class="line"><span class="comment">         * indicate retry.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">do</span> &#123;</span><br><span class="line">            node.prev = pred = pred.prev;</span><br><span class="line">        &#125; <span class="keyword">while</span> (pred.waitStatus &gt; <span class="number">0</span>);</span><br><span class="line">        pred.next = node;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * waitStatus must be 0 or PROPAGATE.  Indicate that we</span></span><br><span class="line"><span class="comment">         * need a signal, but don&#x27;t park yet.  Caller will need to</span></span><br><span class="line"><span class="comment">         * retry to make sure it cannot acquire before parking.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果前驱节点的 waitStatus 为：</p>
+<ul>
+<li>SINGAL，其前驱节点将要被唤醒，该节点可以安全的挂起，直接返回 true</li>
+<li>&gt; 0，其前驱节点被取消，轮训将所有被取消的前驱节点都剔除，然后返回 false</li>
+<li>&lt; 0，其前驱节点为 0 或 PROPAGATE，将前驱节点置为 SINGAL 表示自己将处于阻塞状态（下次判断时，会走 ws == Node.SIGNAL 的分支），然后返回 false。</li>
+</ul>
+<p>返回 false，表示会重新执行 acquireQueued 方法，然后再重新检查前驱是不是头结点重新try一下什么的，也是之前描述的流程。</p>
+<p><strong>获取独占锁过程总结</strong>：</p>
+<p>AQS的模板方法acquire通过调用子类自定义实现的tryAcquire获取同步状态失败后-&gt;将线程构造成Node节点(addWaiter)-&gt;将Node节点添加到同步队列对尾(addWaiter)-&gt;节点以自旋的方法获取同步状态(acquirQueued)。在节点自旋获取同步状态时，只有其前驱节点是头节点的时候才会尝试获取同步状态，如果该节点的前驱不是头节点或者该节点的前驱节点是头节点单获取同步状态失败，则判断当前线程需要阻塞，如果需要阻塞则需要被唤醒过后才返回。</p>
+<h4 id="独占模式-release-源码分析"><a href="#独占模式-release-源码分析" class="headerlink" title="独占模式 release 源码分析"></a>独占模式 release 源码分析</h4><p>AQS 的 release 释放同步状态和 acquire 获取同步状态一样，都是模板方法，tryRealease 具体操作都由子类实现，父类 AQS 只是提供一个算法骨架。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">release</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (tryRelease(arg)) &#123;</span><br><span class="line">        Node h = head;</span><br><span class="line">        <span class="keyword">if</span> (h != <span class="keyword">null</span> &amp;&amp; h.waitStatus != <span class="number">0</span>)</span><br><span class="line">            unparkSuccessor(h);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果释放成功，会解锁头节点的后续节点。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * If status is negative (i.e., possibly needing signal) try</span></span><br><span class="line"><span class="comment">     * to clear in anticipation of signalling.  It is OK if this</span></span><br><span class="line"><span class="comment">     * fails or if status is changed by waiting thread.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">int</span> ws = node.waitStatus;</span><br><span class="line">    <span class="keyword">if</span> (ws &lt; <span class="number">0</span>)</span><br><span class="line">        compareAndSetWaitStatus(node, ws, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Thread to unpark is held in successor, which is normally</span></span><br><span class="line"><span class="comment">     * just the next node.  But if cancelled or apparently null,</span></span><br><span class="line"><span class="comment">     * traverse backwards from tail to find the actual</span></span><br><span class="line"><span class="comment">     * non-cancelled successor.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    Node s = node.next;</span><br><span class="line">    <span class="comment">// 如果后续节点为空或是作废节点</span></span><br><span class="line">    <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        s = <span class="keyword">null</span>;</span><br><span class="line">        <span class="comment">// 从末尾开始找合适的节点</span></span><br><span class="line">        <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</span><br><span class="line">            <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)</span><br><span class="line">                s = t;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 唤醒</span></span><br><span class="line">    <span class="keyword">if</span> (s != <span class="keyword">null</span>)</span><br><span class="line">        LockSupport.unpark(s.thread);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果 node 的后续节点不为空，且不是作废节点，就唤醒这个后续节点。否则从末尾开始找到合适的节点，如果找到便唤醒</p>
+<h3 id="AQS-对于条件变量的支持"><a href="#AQS-对于条件变量的支持" class="headerlink" title="AQS 对于条件变量的支持"></a>AQS 对于条件变量的支持</h3><p>Object 类的 notify 和 wait 是配合 synchronized 内置锁（ObjectMonitor，每个对象都有一个对应的监视器锁）来实现线程间通信与协作的。而条件变量的 singal 和 await 是配合锁（基于 AQS 实现的锁）实现线程间同步的。</p>
+<p><strong>一个条件变量实现线程同步的栗子</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConditionDemo</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span>  ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        ReentrantLock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line">        Condition condition = lock.newCondition();</span><br><span class="line">        EXECUTOR_SERVICE.submit(<span class="keyword">new</span> AwaitThread(lock, condition));</span><br><span class="line">        EXECUTOR_SERVICE.submit(<span class="keyword">new</span> SignalThread(lock, condition));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AwaitThread</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> ReentrantLock lock;</span><br><span class="line">    <span class="keyword">private</span> Condition condition;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">AwaitThread</span><span class="params">(ReentrantLock lock, Condition condition)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.lock = lock;</span><br><span class="line">        <span class="keyword">this</span>.condition = condition;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            lock.lock();</span><br><span class="line">            System.out.println(<span class="string">&quot;begin wait&quot;</span>);</span><br><span class="line">            condition.await();</span><br><span class="line">            System.out.println(<span class="string">&quot;end wait&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            lock.unlock();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SignalThread</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> ReentrantLock lock;</span><br><span class="line">    <span class="keyword">private</span> Condition condition;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SignalThread</span><span class="params">(ReentrantLock lock, Condition condition)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.lock = lock;</span><br><span class="line">        <span class="keyword">this</span>.condition = condition;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            lock.lock();</span><br><span class="line">            System.out.println(<span class="string">&quot;begin signal&quot;</span>);</span><br><span class="line">            condition.signal();</span><br><span class="line">            System.out.println(<span class="string">&quot;end signal&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            lock.unlock();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一个 Lock 对象可以创建多个 Condition 条件变量。调用条件变量的 await 方法类似于 Object 的 wait 方法，会阻塞挂起当前线程，并释放锁，如果没有获取到锁就调用条件变量的 await 方法会抛出 java.lang.IllegalMonitorStateException 异常。</p>
+<p>上述通过 lock.newConditio() 会在 AQS 内部声明一个 ConditionObject 对象，每个 ConditionObject 内部会维持一个条件队列，用于存放调用 await 方法而阻塞的线程。</p>
+<p><strong>await 方法如下</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">await</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Thread.interrupted())</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">    <span class="comment">// 创建新的 node，并插入条件队列末尾</span></span><br><span class="line">    Node node = addConditionWaiter();</span><br><span class="line">    <span class="comment">// 释放当前线程获取的锁</span></span><br><span class="line">    <span class="keyword">int</span> savedState = fullyRelease(node);</span><br><span class="line">    <span class="keyword">int</span> interruptMode = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 调用 LockSupport.park 方法阻塞挂起当前线程</span></span><br><span class="line">    <span class="keyword">while</span> (!isOnSyncQueue(node)) &#123;</span><br><span class="line">        LockSupport.park(<span class="keyword">this</span>);</span><br><span class="line">        <span class="keyword">if</span> ((interruptMode = checkInterruptWhileWaiting(node)) != <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (acquireQueued(node, savedState) &amp;&amp; interruptMode != THROW_IE)</span><br><span class="line">        interruptMode = REINTERRUPT;</span><br><span class="line">    <span class="keyword">if</span> (node.nextWaiter != <span class="keyword">null</span>) <span class="comment">// clean up if cancelled</span></span><br><span class="line">        unlinkCancelledWaiters();</span><br><span class="line">    <span class="keyword">if</span> (interruptMode != <span class="number">0</span>)</span><br><span class="line">        reportInterruptAfterWait(interruptMode);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>signal 方法如下</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">signal</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!isHeldExclusively())</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">    Node first = firstWaiter;</span><br><span class="line">    <span class="keyword">if</span> (first != <span class="keyword">null</span>)</span><br><span class="line">        <span class="comment">// Transfers a node from a condition queue onto sync queue.</span></span><br><span class="line">        doSignal(first);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doSignal</span><span class="params">(Node first)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> ( (firstWaiter = first.nextWaiter) == <span class="keyword">null</span>)</span><br><span class="line">            lastWaiter = <span class="keyword">null</span>;</span><br><span class="line">        first.nextWaiter = <span class="keyword">null</span>;</span><br><span class="line">    &#125; <span class="keyword">while</span> (!transferForSignal(first) &amp;&amp;</span><br><span class="line">             (first = firstWaiter) != <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>一个锁对应一个 AQS 阻塞队列和多个条件变量，每个条件变量对应一个条件队列。</strong></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/lockCondition.png" alt="Lock 与 Condition"></p>
+<h3 id="LockSupport-对于-AQS-阻塞和唤醒线程的支持"><a href="#LockSupport-对于-AQS-阻塞和唤醒线程的支持" class="headerlink" title="LockSupport 对于 AQS 阻塞和唤醒线程的支持"></a>LockSupport 对于 AQS 阻塞和唤醒线程的支持</h3><p>LockSupport 用来创建锁和其它同步类的基本线程阻塞原语，主要作用是挂起和唤醒线程。</p>
+<p>LockSupport 类与每个使用它的线程都会关联一个许可证，默认调用 LockSupport 类方法的线程是不持有许可证的，LockSupport 类内部通过 UnSafe 类实现。先看下类图：</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/lockSupport.png" alt="LockSupport 类图"></p>
+<p>主要看私有变量 UNSAFE 和 parkBlockerOffset，和一些 park 和 unpark 方法。</p>
+<h4 id="UNSAFE"><a href="#UNSAFE" class="headerlink" title="UNSAFE"></a>UNSAFE</h4><p>park unpark 都是由 Unsafe 类实现的，都是 native 方法</p>
+<h4 id="parkBlockerOffset"><a href="#parkBlockerOffset" class="headerlink" title="parkBlockerOffset"></a>parkBlockerOffset</h4><p>私有变量 parkBlockerOffset 保存 parkBlocker 的偏移量。parkBlocker 记录的是线程的阻塞者，用于线程监控和分系工具定为原因的。可以通过 getBlocker 来获取阻塞者。注意的是为了防止滥用，setBlocker 是私有方法。</p>
+<p><strong>为什么不直接保存阻塞者，而用偏移量这样的方式保存阻塞者信息？</strong></p>
+<p>仔细想想就能明白，这个parkBlocker就是在线程处于阻塞的情况下才会被赋值。线程都已经阻塞了，如果不通过这种内存的方法，而是直接调用线程内的方法，线程是不会回应调用的。</p>
+<h4 id="park-相关方法"><a href="#park-相关方法" class="headerlink" title="park 相关方法"></a>park 相关方法</h4><p>如果调用 <strong>park()</strong> 的线程已经拿到了与 LockSupport 关联的许可证（调用 unpark 方法获取许可证），则调用 LockSupport.park() 会马上返回，否者调用线程会被禁止参与线程的调度，也就是会被阻塞挂起。</p>
+<p><strong>parkNanos(long nanos)</strong> 与其类似，如果没有拿到许可调用线程会被阻塞挂起 nanos 时间后在返回。</p>
+<p><strong>parkUntil(long deadline)</strong> 也一样</p>
+<p><strong>park(Object blocker)</strong> 会记录阻塞者到 parkBlocker，线程恢复后，会消除 parkBlocker</p>
+<h4 id="unpark-Thread-thread-方法"><a href="#unpark-Thread-thread-方法" class="headerlink" title="unpark(Thread thread) 方法"></a>unpark(Thread thread) 方法</h4><p>当一个线程调用了 unpark 时候，如果参数 thread 线程没有只有与 LockSupport 相关联的许可证，则让 thread 线程持有。如果 thread 线程之前调用了 park() 被挂起，则调用 unpark 后会被唤醒。</p>
+<h3 id="读写锁-ReentrantReadWriteLock-原理"><a href="#读写锁-ReentrantReadWriteLock-原理" class="headerlink" title="读写锁 ReentrantReadWriteLock 原理"></a>读写锁 ReentrantReadWriteLock 原理</h3><p>state 变量高16位表示<strong>获取读锁的线程数量</strong>，低16位表示线程<strong>获取写锁的可重入数量</strong>，通过 <strong>ThreadLocal 来保存线程获取读锁的可重入数量</strong>。先看下 ReentrantReadWriteLock 的类图。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/WX20190312-112625@2x.png" alt="ReentrantReadWriteLock 类图"></p>
+<p>其中，firstReader 记录第一个获取读锁的线程，firstReaderHoldCount 则记录第一个获取到读锁的线程获取读锁的可重入数。cachedHoldCounter 用来记录最后一个获取读锁的线程获取读锁的可重入次数：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">HoldCounter</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// Use id, not reference, to avoid garbage retention</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">long</span> tid = getThreadId(Thread.currentThread());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>readHolds 是 ThreadLocal 变量，用于存放出去第一个获取读锁线程外的其它线程获取读锁的可重入次数和该线程的id。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ThreadLocalHoldCounter</span></span></span><br><span class="line"><span class="class">    <span class="keyword">extends</span> <span class="title">ThreadLocal</span>&lt;<span class="title">HoldCounter</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> HoldCounter <span class="title">initialValue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> HoldCounter();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="写锁的获取和释放"><a href="#写锁的获取和释放" class="headerlink" title="写锁的获取和释放"></a>写锁的获取和释放</h4><p>写锁通过 WriteLock 来实现，写锁是独占锁</p>
+<p><strong>写锁的获取</strong>：</p>
+<p>获取写锁会调用 acquire 方法，前面讲到 acquire 是 AQS 的模板方法，其中 tryAcquire 方法在子类中实现，所以只需要了解 tryAcquire 具体实现。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">tryAcquire</span><span class="params">(<span class="keyword">int</span> acquires)</span> </span>&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Walkthrough:</span></span><br><span class="line"><span class="comment">     * 1. If read count nonzero or write count nonzero</span></span><br><span class="line"><span class="comment">     *    and owner is a different thread, fail.</span></span><br><span class="line"><span class="comment">     * 2. If count would saturate, fail. (This can only</span></span><br><span class="line"><span class="comment">     *    happen if count is already nonzero.)</span></span><br><span class="line"><span class="comment">     * 3. Otherwise, this thread is eligible for lock if</span></span><br><span class="line"><span class="comment">     *    it is either a reentrant acquire or</span></span><br><span class="line"><span class="comment">     *    queue policy allows it. If so, update state</span></span><br><span class="line"><span class="comment">     *    and set owner.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    Thread current = Thread.currentThread();</span><br><span class="line">    <span class="keyword">int</span> c = getState();</span><br><span class="line">    <span class="comment">// 低16位数值</span></span><br><span class="line">    <span class="keyword">int</span> w = exclusiveCount(c);</span><br><span class="line">    <span class="comment">// 写锁或读锁被某些线程获取</span></span><br><span class="line">    <span class="keyword">if</span> (c != <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// (Note: if c != 0 and w == 0 then shared count != 0)</span></span><br><span class="line">        <span class="comment">// w=0 说明有线程获取了读锁，w！=0 且当前线程不是写锁拥有者（W!=0 表示获取了写锁）</span></span><br><span class="line">        <span class="keyword">if</span> (w == <span class="number">0</span> || current != getExclusiveOwnerThread())</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="comment">// 可重入数量大于最大值</span></span><br><span class="line">        <span class="keyword">if</span> (w + exclusiveCount(acquires) &gt; MAX_COUNT)</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">&quot;Maximum lock count exceeded&quot;</span>);</span><br><span class="line">        <span class="comment">// Reentrant acquire</span></span><br><span class="line">        setState(c + acquires);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 读写锁都未被获取</span></span><br><span class="line">    <span class="keyword">if</span> (writerShouldBlock() ||</span><br><span class="line">        !compareAndSetState(c, c + acquires))</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    setExclusiveOwnerThread(current);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>writerShouldBlock 方法对于非公平锁，是直接返回false，这样就会走 CAS 操作，与别的所有线程一起竞争，也就是后来的线程与先来的线程一起“插队”竞争。writerShouldBlock 方法对于公平锁，会调用 hasQueuedPredecessors 会判断是否有前驱节点，如果有则直接放回放弃进竞争，毕竟别人先来的要公平。</p>
+<p><strong>写锁的释放</strong>：</p>
+<p>释放写锁会调用 release 方法，release 是 AQS 的模板方法，tryRelease 由子类实现，我们来看tryRelease。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">tryRelease</span><span class="params">(<span class="keyword">int</span> releases)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 判断是否是写锁拥有者</span></span><br><span class="line">    <span class="keyword">if</span> (!isHeldExclusively())</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">    <span class="comment">// 获取释放锁后的 可重入 值</span></span><br><span class="line">    <span class="keyword">int</span> nextc = getState() - releases;</span><br><span class="line">    <span class="keyword">boolean</span> free = exclusiveCount(nextc) == <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 如果可重如值为0，就释放锁</span></span><br><span class="line">    <span class="keyword">if</span> (free)</span><br><span class="line">        setExclusiveOwnerThread(<span class="keyword">null</span>);</span><br><span class="line">    <span class="comment">// 写锁只有一个线程，不需要 CAS 操作</span></span><br><span class="line">    setState(nextc);</span><br><span class="line">    <span class="keyword">return</span> free;</span><br><span class="line">&#125;tryAcquireShared</span><br></pre></td></tr></table></figure>
+
+<h4 id="读锁的获取和释放"><a href="#读锁的获取和释放" class="headerlink" title="读锁的获取和释放"></a>读锁的获取和释放</h4><p>读锁通过 ReadLock 来实现，读锁是共享锁。</p>
+<p><strong>读锁的获取</strong>：</p>
+<p>调用 AQS 的 acquireShared 方法，内部调用 ReentrantReadWriteLock 中的 Sync 重写的 tryAcquireShared 方法。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">tryAcquireShared</span><span class="params">(<span class="keyword">int</span> unused)</span> </span>&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Walkthrough:</span></span><br><span class="line"><span class="comment">     * 1. If write lock held by another thread, fail.</span></span><br><span class="line"><span class="comment">     * 2. Otherwise, this thread is eligible for</span></span><br><span class="line"><span class="comment">     *    lock wrt state, so ask if it should block</span></span><br><span class="line"><span class="comment">     *    because of queue policy. If not, try</span></span><br><span class="line"><span class="comment">     *    to grant by CASing state and updating count.</span></span><br><span class="line"><span class="comment">     *    Note that step does not check for reentrant</span></span><br><span class="line"><span class="comment">     *    acquires, which is postponed to full version</span></span><br><span class="line"><span class="comment">     *    to avoid having to check hold count in</span></span><br><span class="line"><span class="comment">     *    the more typical non-reentrant case.</span></span><br><span class="line"><span class="comment">     * 3. If step 2 fails either because thread</span></span><br><span class="line"><span class="comment">     *    apparently not eligible or CAS fails or count</span></span><br><span class="line"><span class="comment">     *    saturated, chain to version with full retry loop.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    Thread current = Thread.currentThread();</span><br><span class="line">    <span class="keyword">int</span> c = getState();</span><br><span class="line">    <span class="comment">// 如果写锁被获取，且不是当前线程</span></span><br><span class="line">    <span class="keyword">if</span> (exclusiveCount(c) != <span class="number">0</span> &amp;&amp;</span><br><span class="line">        getExclusiveOwnerThread() != current)</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    <span class="comment">// 获取了读锁的线程数，别搞成是可重入数量</span></span><br><span class="line">    <span class="keyword">int</span> r = sharedCount(c);</span><br><span class="line">    <span class="comment">// 尝试获取读锁，多个线程只有一个成功，不成功的会进入下面的 fullTryAcquireShared 方法</span></span><br><span class="line">    <span class="keyword">if</span> (!readerShouldBlock() &amp;&amp;</span><br><span class="line">        r &lt; MAX_COUNT &amp;&amp;</span><br><span class="line">        compareAndSetState(c, c + SHARED_UNIT)) &#123;</span><br><span class="line">        <span class="comment">// 第一个获取读锁</span></span><br><span class="line">        <span class="keyword">if</span> (r == <span class="number">0</span>) &#123;</span><br><span class="line">            firstReader = current;</span><br><span class="line">            firstReadeHoldCount = <span class="number">1</span>;</span><br><span class="line">        <span class="comment">// 是第一个获取读锁的线程</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (firstReader == current) &#123;</span><br><span class="line">            firstReaderHoldCount++;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            HoldCounter rh = cachedHoldCounter;</span><br><span class="line">            <span class="comment">// 将获取到读锁的当前线程和可重入数记录到 cachedHoldCounter 中</span></span><br><span class="line">            <span class="keyword">if</span> (rh == <span class="keyword">null</span> || rh.tid != getThreadId(current))</span><br><span class="line">                cachedHoldCounter = rh = readHolds.get();</span><br><span class="line">            <span class="comment">// cachedHoldCounter 为当前线程，将其保存到 readHolds 中</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (rh.count == <span class="number">0</span>)</span><br><span class="line">                readHolds.set(rh);</span><br><span class="line">            rh.count++;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 自旋 CAS 获取读锁</span></span><br><span class="line">    <span class="keyword">return</span> fullTryAcquireShared(current);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>readerShouldBlock 方法会判断是否需要阻塞，在公平锁和非公平锁有不同的实现。</p>
+<p>在<strong>非公平锁</strong>下，如果同步等待队列中有获取写锁的线程在排队，则获取读锁的该线程会阻塞，否则直接尝试获取读锁。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">NonfairSync</span> <span class="keyword">extends</span> <span class="title">Sync</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">readerShouldBlock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> apparentlyFirstQueuedIsExclusive();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">apparentlyFirstQueuedIsExclusive</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Node h, s;</span><br><span class="line">    <span class="keyword">return</span> (h = head) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">        <span class="comment">// AQS 第一个 node 是虚拟节点</span></span><br><span class="line">        (s = h.next)  != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">        !s.isShared()         &amp;&amp;</span><br><span class="line">        s.thread != <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<strong>公平锁</strong>下，如果同步队列中有其他线程在排队，则获取读锁的该线程会阻塞，这里和写锁是一样的，先来后到~</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">FairSync</span> <span class="keyword">extends</span> <span class="title">Sync</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">readerShouldBlock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> hasQueuedPredecessors();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>读锁的释放</strong>：</p>
+<p>直接看 tryReleaseShared 方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">tryReleaseShared</span><span class="params">(<span class="keyword">int</span> unused)</span> </span>&#123;</span><br><span class="line">    Thread current = Thread.currentThread();</span><br><span class="line">    <span class="comment">// 先 firstReader 再 cachedHoldCounter 最后 readHolds</span></span><br><span class="line">    <span class="keyword">if</span> (firstReader == current) &#123;</span><br><span class="line">        <span class="comment">// assert firstReaderHoldCount &gt; 0;</span></span><br><span class="line">        <span class="keyword">if</span> (firstReaderHoldCount == <span class="number">1</span>)</span><br><span class="line">            firstReader = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            firstReaderHoldCount--;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        HoldCounter rh = cachedHoldCounter;</span><br><span class="line">        <span class="keyword">if</span> (rh == <span class="keyword">null</span> || rh.tid != getThreadId(current))</span><br><span class="line">            rh = readHolds.get();</span><br><span class="line">        <span class="keyword">int</span> count = rh.count;</span><br><span class="line">        <span class="comment">// 为0 记得在 ThreadLocal 中 remove</span></span><br><span class="line">        <span class="keyword">if</span> (count &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">            readHolds.remove();</span><br><span class="line">            <span class="keyword">if</span> (count &lt;= <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">throw</span> unmatchedUnlockException();</span><br><span class="line">        &#125;</span><br><span class="line">        --rh.count;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 轮训 CAS 操作，将状态 state 更新</span></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">int</span> c = getState();</span><br><span class="line">        <span class="keyword">int</span> nextc = c - SHARED_UNIT;</span><br><span class="line">        <span class="keyword">if</span> (compareAndSetState(c, nextc))</span><br><span class="line">            <span class="comment">// Releasing the read lock has no effect on readers,</span></span><br><span class="line">            <span class="comment">// but it may allow waiting writers to proceed if</span></span><br><span class="line">            <span class="comment">// both read and write locks are now free.</span></span><br><span class="line">            <span class="keyword">return</span> nextc == <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="锁降级"><a href="#锁降级" class="headerlink" title="锁降级"></a>锁降级</h4><p>锁降级：写锁变成读锁。锁升级：读锁变成写锁。</p>
+<p>同一线程在没有释放读锁下去申请写锁，会阻塞，ReentrantReadWriteLock 不支持锁升级。下面代码会阻塞：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">ReadWriteLock rtLock = <span class="keyword">new</span> ReentrantReadWriteLock();</span><br><span class="line">rtLock.readLock().lock();</span><br><span class="line">System.out.println(<span class="string">&quot;get readLock&quot;</span>);</span><br><span class="line">rtLock.writeLock().lock();</span><br><span class="line">System.out.println(<span class="string">&quot;blocking&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>ReentrantReadWriteLock支持锁降级，如果线程先获取写锁，再获得读锁，再释放写锁，这样写锁就降级为读锁了。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">ReadWriteLock rtLock = <span class="keyword">new</span> ReentrantReadWriteLock();</span><br><span class="line">rtLock.writeLock().lock();</span><br><span class="line">System.out.println(<span class="string">&quot;get writeLock&quot;</span>);</span><br><span class="line">rtLock.readLock().lock();</span><br><span class="line">System.out.println(<span class="string">&quot;get readLock&quot;</span>);</span><br><span class="line">rtLock.writeLock().unlock();</span><br><span class="line">System.out.println(<span class="string">&quot;unWriteLock&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<h4 id="一些疑问"><a href="#一些疑问" class="headerlink" title="一些疑问"></a>一些疑问</h4><p>1.ReadLock 既然有了 readHolds 这个 ThreadLocal 变量，为什么还要额外的添加 firstReader 和 cachedHoldCounter 呢？</p>
+<p>因为 ThreadLocal 变量内部是Map，这样比直接 get 一个变量是要要相对耗时的。在 fullTryAcquireShared 方法中也是先判断 firstReader 再判断 cachedHoldCounter 然后再在 readHolds 中获取的，或许 Doug Lea 大佬认为 第一个获取读锁的线程后续也大概是这个线程继续获取读锁的。而且这个命名 cachedHoldCounter 也已经说明一切。</p>
+<p>2.读锁中判断是否需要阻塞 readerShouldBlock 方法，非公平锁的实现，为什么需要判断头结点是否是获取写锁而排队呢？</p>
+<p>看注释是为了避免无限期的写锁饥饿</p>
+<h2 id="synchronized-与-lock-的区别"><a href="#synchronized-与-lock-的区别" class="headerlink" title="synchronized 与 lock 的区别"></a>synchronized 与 lock 的区别</h2><p>synchronized 是通过 Monitor 监视器锁实现，而 Lock 是通过 AQS 实现。在 jdk6 之前，synchronized 是一个重量级锁。</p>
+<h2 id="一些疑问-1"><a href="#一些疑问-1" class="headerlink" title="一些疑问"></a>一些疑问</h2><h3 id="为什么-AQS-需要一个虚拟-head-节点"><a href="#为什么-AQS-需要一个虚拟-head-节点" class="headerlink" title="为什么 AQS 需要一个虚拟 head 节点"></a>为什么 AQS 需要一个虚拟 head 节点</h3><p>每个节点都需要根据其前置节点 waitStatus 状态是 SINGAL 来唤醒自己，为了防止重复唤醒。但是第一个节点是没有前置节点，所以需要一个虚拟节点。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>java 并发编程之美（三）</p>
+<p><a href="https://luoming1224.github.io/2018/03/01/%5Bjava1.8%E6%BA%90%E7%A0%81%E7%AC%94%E8%AE%B0%5DReentrantReadWriteLock%E8%AF%A6%E8%A7%A3/">[java1.8源码笔记]ReentrantReadWriteLock详解</a></p>
+<p><a href="https://www.jianshu.com/p/9d379adba98c">https://www.jianshu.com/p/9d379adba98c</a></p>
+<p><a href="https://www.jianshu.com/p/396d8c5ba4c4">https://www.jianshu.com/p/396d8c5ba4c4</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/27134110">https://zhuanlan.zhihu.com/p/27134110</a></p>
+<p><a href="https://juejin.im/post/5ae755606fb9a07ab97942a4">https://juejin.im/post/5ae755606fb9a07ab97942a4</a></p>
+]]></content>
+      <categories>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+        <tag>锁</tag>
+        <tag>源码分析</tag>
+        <tag>Lock</tag>
+        <tag>synchronized</tag>
+      </tags>
+  </entry>
+</search>
