@@ -1,55 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>ReentrantLock 实现原理</title>
-    <url>/ReentrantLock.html</url>
-    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
-<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
-<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
-<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
-<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
-<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
-<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
-<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
-<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
-<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
-<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
-<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
-<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
-<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
-<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
-<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
-<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
-<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
-<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
-<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
-<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
-<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
-<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
-<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
-<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
-<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
-<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
-]]></content>
-      <categories>
-        <category>并发编程</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-        <tag>源码</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>caffeine 缓存实现原理</title>
     <url>/caffeine.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
@@ -120,8 +71,57 @@
         <category>javaWeb</category>
       </categories>
       <tags>
-        <tag>源码</tag>
         <tag>caffeine</tag>
+        <tag>源码</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ReentrantLock 实现原理</title>
+    <url>/ReentrantLock.html</url>
+    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
+<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
+<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
+<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
+<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
+<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
+<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
+<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
+<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
+<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
+<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
+<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
+<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
+<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
+<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
+<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
+<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
+<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
+<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
+<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
+<p><img src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
+<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
+<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
+<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
+<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
+<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
+]]></content>
+      <categories>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>AQS</tag>
       </tags>
   </entry>
   <entry>
@@ -364,7 +364,48 @@
   <entry>
     <title>hexo5-next8 配置</title>
     <url>/hexo5-next8.html</url>
-    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2>]]></content>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">## 安装 hexo，需要 nodejs</span><br><span class="line">npm install hexo-cli -g</span><br><span class="line">hexo init blog</span><br><span class="line">cd blog</span><br><span class="line">npm install</span><br><span class="line">hexo server</span><br><span class="line"></span><br><span class="line">## 安装 next 主题</span><br><span class="line">npm install hexo-theme-next</span><br><span class="line"></span><br><span class="line">## 初始化 next 配置</span><br><span class="line">## hexo5 推荐将主题配置文件放在根目录，命名为：_config.[name].yml</span><br><span class="line">## 下面两种任选一种</span><br><span class="line">cp node_modules/hexo-theme-next/_config.yml _config.next.yml</span><br><span class="line">cp themes/next/_config.yml _config.next.yml</span><br></pre></td></tr></table></figure>
+
+<h3 id="版本要求"><a href="#版本要求" class="headerlink" title="版本要求"></a>版本要求</h3><table>
+<thead>
+<tr>
+<th>Hexo version</th>
+<th>Minimum Node.js version</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>5.0+</td>
+<td>10.13.0</td>
+</tr>
+<tr>
+<td>4.1 - 4.2</td>
+<td>8.10</td>
+</tr>
+<tr>
+<td>4.0</td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>3.3 - 3.9</td>
+<td>6.9</td>
+</tr>
+<tr>
+<td>3.2 - 3.3</td>
+<td>0.12</td>
+</tr>
+<tr>
+<td>3.0 - 3.1</td>
+<td>0.10 or iojs</td>
+</tr>
+<tr>
+<td>0.0.1 - 2.8</td>
+<td>0.10</td>
+</tr>
+</tbody></table>
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><h3 id="站点配置"><a href="#站点配置" class="headerlink" title="站点配置"></a>站点配置</h3><p>站点配置文件 _config.yml<br>主题：<code>theme: next</code><br>站点信息：title<br>hexo 永久链接：url<br>nofollow 减少出站链接</p>
+<h3 id="主题配置"><a href="#主题配置" class="headerlink" title="主题配置"></a>主题配置</h3><p>主题： <code>scheme:Gemini</code><br>菜单：menu。需要添加对应页面，如： hexo new page about<br>本地搜索<br>rss 订阅<br>站点的 footer 信息<br>社交信息：social<br>友链：links_icon<br>首页文章不展示全文显示摘要<br>页面阅读统计</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://hexo.io/docs/configuration">https://hexo.io/docs/configuration</a><br><a href="https://theme-next.js.org/docs/theme-settings/">https://theme-next.js.org/docs/theme-settings/</a><br><a href="https://tding.top/archives/42c38b10.html">https://tding.top/archives/42c38b10.html</a></p>
+]]></content>
       <tags>
         <tag>hexo</tag>
       </tags>
@@ -859,6 +900,37 @@
       </tags>
   </entry>
   <entry>
+    <title>protobuf 安装使用</title>
+    <url>/protobuf-use.html</url>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
+<li>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></li>
+<li>解压，cd 到目录下</li>
+<li>./configure</li>
+<li>make</li>
+<li>make check</li>
+<li>sudo make install</li>
+<li>which protoc</li>
+<li>protoc –version</li>
+</ul>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>protobuf</tag>
+        <tag>序列化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>nginx实现原理</title>
     <url>/nginx-implement.html</url>
     <content><![CDATA[<h2 id="简单理解-Nginx"><a href="#简单理解-Nginx" class="headerlink" title="简单理解 Nginx"></a>简单理解 Nginx</h2><p>nginx 是静态 web 服务器，意思是 engine x。并发量高，</p>
@@ -909,37 +981,6 @@
       </categories>
       <tags>
         <tag>nginx</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>protobuf 安装使用</title>
-    <url>/protobuf-use.html</url>
-    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
-<li>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></li>
-<li>解压，cd 到目录下</li>
-<li>./configure</li>
-<li>make</li>
-<li>make check</li>
-<li>sudo make install</li>
-<li>which protoc</li>
-<li>protoc –version</li>
-</ul>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>javaWeb</category>
-      </categories>
-      <tags>
-        <tag>protobuf</tag>
-        <tag>序列化</tag>
       </tags>
   </entry>
   <entry>
