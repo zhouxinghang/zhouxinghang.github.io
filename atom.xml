@@ -6,7 +6,7 @@
   <link href="https://zhouxinghang.github.io/atom.xml" rel="self"/>
   
   <link href="https://zhouxinghang.github.io/"/>
-  <updated>2021-11-24T07:25:18.565Z</updated>
+  <updated>2021-11-24T08:10:59.992Z</updated>
   <id>https://zhouxinghang.github.io/</id>
   
   <author>
@@ -15,6 +15,25 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>druid-vs-hive</title>
+    <link href="https://zhouxinghang.github.io/druid-vs-hive.html"/>
+    <id>https://zhouxinghang.github.io/druid-vs-hive.html</id>
+    <published>2021-11-24T07:56:41.000Z</published>
+    <updated>2021-11-24T08:10:59.992Z</updated>
+    
+    
+    <summary type="html">介绍 druid hive 的使用场景，简述实现原理</summary>
+    
+    
+    
+    <category term="大数据" scheme="https://zhouxinghang.github.io/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/"/>
+    
+    
+    <category term="druid,hive,bigdata" scheme="https://zhouxinghang.github.io/tags/druid-hive-bigdata/"/>
+    
+  </entry>
   
   <entry>
     <title>hexo5-next8 配置</title>
