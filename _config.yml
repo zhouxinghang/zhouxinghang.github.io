@@ -116,6 +116,7 @@ search:
 
 lazyload:
   enable: true
+  loadingImg: #./images/loading.gif
 
 # 外部链接优化
 nofollow:
