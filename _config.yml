@@ -103,7 +103,7 @@ theme: next
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
   type: 'git'
-  repository: https://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@github.com/zhouxinghang/zhouxinghang.github.io.git
+  repository: git@github.com:zhouxinghang/zhouxinghang.github.io.git
   branch: main
   user: zhouxinghang
   email: 13633843273@163.com
