@@ -58,7 +58,7 @@ rss 订阅
 ## 优化
 
 ### cdn 加速
-需要一个二级域名，在 dns 上配置 cname 到 xxx.github.io。生效后，在 github page 中设置自定义域名
+需要一个二级域名，在 dns 上配置 cname 到 xxx.github.io。生效后，在 github page 中设置自定义域名，成功后 github 会在根目录创建一个 CNAME 配置文件。之后访问 xxx.github.io 会 301 到自定义域名
 
 cloudflare 配置 cdn 加速
 
