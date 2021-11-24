@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>ZBlog</title>
-  <icon>https://zhouxinghang.github.io/icon.png</icon>
+  <icon>https://tig.red/icon.png</icon>
   <subtitle>day day up</subtitle>
-  <link href="https://zhouxinghang.github.io/atom.xml" rel="self"/>
+  <link href="https://tig.red/atom.xml" rel="self"/>
   
-  <link href="https://zhouxinghang.github.io/"/>
+  <link href="https://tig.red/"/>
   <updated>2021-11-24T08:10:59.992Z</updated>
-  <id>https://zhouxinghang.github.io/</id>
+  <id>https://tig.red/</id>
   
   <author>
     <name>zhouxinghang</name>
@@ -18,8 +18,8 @@
   
   <entry>
     <title>druid-vs-hive</title>
-    <link href="https://zhouxinghang.github.io/druid-vs-hive.html"/>
-    <id>https://zhouxinghang.github.io/druid-vs-hive.html</id>
+    <link href="https://tig.red/druid-vs-hive.html"/>
+    <id>https://tig.red/druid-vs-hive.html</id>
     <published>2021-11-24T07:56:41.000Z</published>
     <updated>2021-11-24T08:10:59.992Z</updated>
     
@@ -28,17 +28,17 @@
     
     
     
-    <category term="大数据" scheme="https://zhouxinghang.github.io/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/"/>
+    <category term="大数据" scheme="https://tig.red/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/"/>
     
     
-    <category term="druid,hive,bigdata" scheme="https://zhouxinghang.github.io/tags/druid-hive-bigdata/"/>
+    <category term="druid,hive,bigdata" scheme="https://tig.red/tags/druid-hive-bigdata/"/>
     
   </entry>
   
   <entry>
     <title>hexo5-next8 配置</title>
-    <link href="https://zhouxinghang.github.io/hexo5-next8.html"/>
-    <id>https://zhouxinghang.github.io/hexo5-next8.html</id>
+    <link href="https://tig.red/hexo5-next8.html"/>
+    <id>https://tig.red/hexo5-next8.html</id>
     <published>2021-11-23T05:09:23.000Z</published>
     <updated>2021-11-24T07:25:18.565Z</updated>
     
@@ -48,14 +48,14 @@
     
     
     
-    <category term="hexo" scheme="https://zhouxinghang.github.io/tags/hexo/"/>
+    <category term="hexo" scheme="https://tig.red/tags/hexo/"/>
     
   </entry>
   
   <entry>
     <title>Http 407 问题排查</title>
-    <link href="https://zhouxinghang.github.io/http-407-fix.html"/>
-    <id>https://zhouxinghang.github.io/http-407-fix.html</id>
+    <link href="https://tig.red/http-407-fix.html"/>
+    <id>https://tig.red/http-407-fix.html</id>
     <published>2019-07-25T11:08:25.000Z</published>
     <updated>2021-11-24T07:09:20.032Z</updated>
     
@@ -68,19 +68,19 @@
     
     
     
-    <category term="异常排查" scheme="https://zhouxinghang.github.io/categories/%E5%BC%82%E5%B8%B8%E6%8E%92%E6%9F%A5/"/>
+    <category term="异常排查" scheme="https://tig.red/categories/%E5%BC%82%E5%B8%B8%E6%8E%92%E6%9F%A5/"/>
     
     
-    <category term="Http" scheme="https://zhouxinghang.github.io/tags/Http/"/>
+    <category term="Http" scheme="https://tig.red/tags/Http/"/>
     
-    <category term="HttpClient" scheme="https://zhouxinghang.github.io/tags/HttpClient/"/>
+    <category term="HttpClient" scheme="https://tig.red/tags/HttpClient/"/>
     
   </entry>
   
   <entry>
     <title>ReentrantLock 实现原理</title>
-    <link href="https://zhouxinghang.github.io/ReentrantLock.html"/>
-    <id>https://zhouxinghang.github.io/ReentrantLock.html</id>
+    <link href="https://tig.red/ReentrantLock.html"/>
+    <id>https://tig.red/ReentrantLock.html</id>
     <published>2019-07-07T09:45:14.000Z</published>
     <updated>2021-11-24T07:10:33.270Z</updated>
     
@@ -91,19 +91,19 @@
     
     
     
-    <category term="并发编程" scheme="https://zhouxinghang.github.io/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
+    <category term="并发编程" scheme="https://tig.red/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
     
-    <category term="AQS" scheme="https://zhouxinghang.github.io/tags/AQS/"/>
+    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
     
-    <category term="源码" scheme="https://zhouxinghang.github.io/tags/%E6%BA%90%E7%A0%81/"/>
+    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
     
   </entry>
   
   <entry>
     <title>disrupt 实现原理</title>
-    <link href="https://zhouxinghang.github.io/disrupt.html"/>
-    <id>https://zhouxinghang.github.io/disrupt.html</id>
+    <link href="https://tig.red/disrupt.html"/>
+    <id>https://tig.red/disrupt.html</id>
     <published>2019-06-23T13:59:08.000Z</published>
     <updated>2021-11-24T07:10:56.730Z</updated>
     
@@ -113,19 +113,19 @@
     
     
     
-    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    <category term="javaWeb" scheme="https://tig.red/categories/javaWeb/"/>
     
     
-    <category term="源码" scheme="https://zhouxinghang.github.io/tags/%E6%BA%90%E7%A0%81/"/>
+    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
     
-    <category term="disruptor" scheme="https://zhouxinghang.github.io/tags/disruptor/"/>
+    <category term="disruptor" scheme="https://tig.red/tags/disruptor/"/>
     
   </entry>
   
   <entry>
     <title>caffeine 缓存实现原理</title>
-    <link href="https://zhouxinghang.github.io/caffeine.html"/>
-    <id>https://zhouxinghang.github.io/caffeine.html</id>
+    <link href="https://tig.red/caffeine.html"/>
+    <id>https://tig.red/caffeine.html</id>
     <published>2019-05-12T13:04:31.000Z</published>
     <updated>2021-11-24T07:10:55.059Z</updated>
     
@@ -134,19 +134,19 @@
     
     
     
-    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    <category term="javaWeb" scheme="https://tig.red/categories/javaWeb/"/>
     
     
-    <category term="源码" scheme="https://zhouxinghang.github.io/tags/%E6%BA%90%E7%A0%81/"/>
+    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
     
-    <category term="caffeine" scheme="https://zhouxinghang.github.io/tags/caffeine/"/>
+    <category term="caffeine" scheme="https://tig.red/tags/caffeine/"/>
     
   </entry>
   
   <entry>
     <title>protobuf 安装使用</title>
-    <link href="https://zhouxinghang.github.io/protobuf-use.html"/>
-    <id>https://zhouxinghang.github.io/protobuf-use.html</id>
+    <link href="https://tig.red/protobuf-use.html"/>
+    <id>https://tig.red/protobuf-use.html</id>
     <published>2019-04-30T13:40:30.000Z</published>
     <updated>2021-11-24T07:10:21.934Z</updated>
     
@@ -170,19 +170,19 @@
     
     
     
-    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    <category term="javaWeb" scheme="https://tig.red/categories/javaWeb/"/>
     
     
-    <category term="protobuf" scheme="https://zhouxinghang.github.io/tags/protobuf/"/>
+    <category term="protobuf" scheme="https://tig.red/tags/protobuf/"/>
     
-    <category term="序列化" scheme="https://zhouxinghang.github.io/tags/%E5%BA%8F%E5%88%97%E5%8C%96/"/>
+    <category term="序列化" scheme="https://tig.red/tags/%E5%BA%8F%E5%88%97%E5%8C%96/"/>
     
   </entry>
   
   <entry>
     <title>单例模式</title>
-    <link href="https://zhouxinghang.github.io/singleton.html"/>
-    <id>https://zhouxinghang.github.io/singleton.html</id>
+    <link href="https://tig.red/singleton.html"/>
+    <id>https://tig.red/singleton.html</id>
     <published>2019-04-13T12:43:22.000Z</published>
     <updated>2021-11-24T07:10:37.145Z</updated>
     
@@ -193,19 +193,19 @@
     
     
     
-    <category term="java基础" scheme="https://zhouxinghang.github.io/categories/java%E5%9F%BA%E7%A1%80/"/>
+    <category term="java基础" scheme="https://tig.red/categories/java%E5%9F%BA%E7%A1%80/"/>
     
     
-    <category term="源码" scheme="https://zhouxinghang.github.io/tags/%E6%BA%90%E7%A0%81/"/>
+    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
     
-    <category term="设计模式" scheme="https://zhouxinghang.github.io/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    <category term="设计模式" scheme="https://tig.red/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
     
   </entry>
   
   <entry>
     <title>Mac 实现 NTFS 格式硬盘读写</title>
-    <link href="https://zhouxinghang.github.io/mac-NTFS.html"/>
-    <id>https://zhouxinghang.github.io/mac-NTFS.html</id>
+    <link href="https://tig.red/mac-NTFS.html"/>
+    <id>https://tig.red/mac-NTFS.html</id>
     <published>2019-04-13T11:32:59.000Z</published>
     <updated>2021-11-24T07:09:59.794Z</updated>
     
@@ -214,19 +214,19 @@
     
     
     
-    <category term="计算机操作" scheme="https://zhouxinghang.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/"/>
+    <category term="计算机操作" scheme="https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/"/>
     
     
-    <category term="mac" scheme="https://zhouxinghang.github.io/tags/mac/"/>
+    <category term="mac" scheme="https://tig.red/tags/mac/"/>
     
-    <category term="ntfs" scheme="https://zhouxinghang.github.io/tags/ntfs/"/>
+    <category term="ntfs" scheme="https://tig.red/tags/ntfs/"/>
     
   </entry>
   
   <entry>
     <title>docker基础</title>
-    <link href="https://zhouxinghang.github.io/docker-base.html"/>
-    <id>https://zhouxinghang.github.io/docker-base.html</id>
+    <link href="https://tig.red/docker-base.html"/>
+    <id>https://tig.red/docker-base.html</id>
     <published>2019-04-09T12:59:33.000Z</published>
     <updated>2021-11-24T07:10:58.744Z</updated>
     
@@ -235,19 +235,19 @@
     
     
     
-    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    <category term="javaWeb" scheme="https://tig.red/categories/javaWeb/"/>
     
     
-    <category term="javaWeb" scheme="https://zhouxinghang.github.io/tags/javaWeb/"/>
+    <category term="javaWeb" scheme="https://tig.red/tags/javaWeb/"/>
     
-    <category term="docker" scheme="https://zhouxinghang.github.io/tags/docker/"/>
+    <category term="docker" scheme="https://tig.red/tags/docker/"/>
     
   </entry>
   
   <entry>
     <title>jvm参数</title>
-    <link href="https://zhouxinghang.github.io/jvm-options.html"/>
-    <id>https://zhouxinghang.github.io/jvm-options.html</id>
+    <link href="https://tig.red/jvm-options.html"/>
+    <id>https://tig.red/jvm-options.html</id>
     <published>2019-04-06T13:15:55.000Z</published>
     <updated>2021-11-24T07:09:56.190Z</updated>
     
@@ -258,19 +258,19 @@
     
     
     
-    <category term="java基础" scheme="https://zhouxinghang.github.io/categories/java%E5%9F%BA%E7%A1%80/"/>
+    <category term="java基础" scheme="https://tig.red/categories/java%E5%9F%BA%E7%A1%80/"/>
     
     
-    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    <category term="java" scheme="https://tig.red/tags/java/"/>
     
-    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
     
   </entry>
   
   <entry>
     <title>nginx实现原理</title>
-    <link href="https://zhouxinghang.github.io/nginx-implement.html"/>
-    <id>https://zhouxinghang.github.io/nginx-implement.html</id>
+    <link href="https://tig.red/nginx-implement.html"/>
+    <id>https://tig.red/nginx-implement.html</id>
     <published>2019-03-30T12:37:47.000Z</published>
     <updated>2021-11-24T07:10:14.214Z</updated>
     
@@ -279,17 +279,17 @@
     
     
     
-    <category term="javaWeb" scheme="https://zhouxinghang.github.io/categories/javaWeb/"/>
+    <category term="javaWeb" scheme="https://tig.red/categories/javaWeb/"/>
     
     
-    <category term="nginx" scheme="https://zhouxinghang.github.io/tags/nginx/"/>
+    <category term="nginx" scheme="https://tig.red/tags/nginx/"/>
     
   </entry>
   
   <entry>
     <title>ThreadLocal</title>
-    <link href="https://zhouxinghang.github.io/threadLocal.html"/>
-    <id>https://zhouxinghang.github.io/threadLocal.html</id>
+    <link href="https://tig.red/threadLocal.html"/>
+    <id>https://tig.red/threadLocal.html</id>
     <published>2019-03-20T12:22:41.000Z</published>
     <updated>2021-11-24T07:10:51.322Z</updated>
     
@@ -298,19 +298,19 @@
     
     
     
-    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java%E8%BF%9B%E9%98%B6/"/>
+    <category term="java进阶" scheme="https://tig.red/categories/java%E8%BF%9B%E9%98%B6/"/>
     
     
-    <category term="spring" scheme="https://zhouxinghang.github.io/tags/spring/"/>
+    <category term="spring" scheme="https://tig.red/tags/spring/"/>
     
-    <category term="threadlocal" scheme="https://zhouxinghang.github.io/tags/threadlocal/"/>
+    <category term="threadlocal" scheme="https://tig.red/tags/threadlocal/"/>
     
   </entry>
   
   <entry>
     <title>java常量池</title>
-    <link href="https://zhouxinghang.github.io/java-constant-pool.html"/>
-    <id>https://zhouxinghang.github.io/java-constant-pool.html</id>
+    <link href="https://tig.red/java-constant-pool.html"/>
+    <id>https://tig.red/java-constant-pool.html</id>
     <published>2019-03-13T11:46:20.000Z</published>
     <updated>2021-11-24T07:09:27.858Z</updated>
     
@@ -322,17 +322,17 @@
     
     
     
-    <category term="java基础" scheme="https://zhouxinghang.github.io/categories/java%E5%9F%BA%E7%A1%80/"/>
+    <category term="java基础" scheme="https://tig.red/categories/java%E5%9F%BA%E7%A1%80/"/>
     
     
-    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
     
   </entry>
   
   <entry>
     <title>AQS相关</title>
-    <link href="https://zhouxinghang.github.io/AQS.html"/>
-    <id>https://zhouxinghang.github.io/AQS.html</id>
+    <link href="https://tig.red/AQS.html"/>
+    <id>https://tig.red/AQS.html</id>
     <published>2019-03-12T03:13:14.000Z</published>
     <updated>2021-11-24T07:10:53.130Z</updated>
     
@@ -344,25 +344,25 @@
     
     
     
-    <category term="并发编程" scheme="https://zhouxinghang.github.io/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
+    <category term="并发编程" scheme="https://tig.red/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
     
-    <category term="AQS" scheme="https://zhouxinghang.github.io/tags/AQS/"/>
+    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
     
-    <category term="锁" scheme="https://zhouxinghang.github.io/tags/%E9%94%81/"/>
+    <category term="锁" scheme="https://tig.red/tags/%E9%94%81/"/>
     
-    <category term="源码分析" scheme="https://zhouxinghang.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
+    <category term="源码分析" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
     
-    <category term="Lock" scheme="https://zhouxinghang.github.io/tags/Lock/"/>
+    <category term="Lock" scheme="https://tig.red/tags/Lock/"/>
     
-    <category term="synchronized" scheme="https://zhouxinghang.github.io/tags/synchronized/"/>
+    <category term="synchronized" scheme="https://tig.red/tags/synchronized/"/>
     
   </entry>
   
   <entry>
     <title>java中的锁</title>
-    <link href="https://zhouxinghang.github.io/java-lock.html"/>
-    <id>https://zhouxinghang.github.io/java-lock.html</id>
+    <link href="https://tig.red/java-lock.html"/>
+    <id>https://tig.red/java-lock.html</id>
     <published>2019-03-05T06:24:30.000Z</published>
     <updated>2021-11-24T07:09:42.210Z</updated>
     
@@ -373,21 +373,21 @@
     
     
     
-    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java%E8%BF%9B%E9%98%B6/"/>
+    <category term="java进阶" scheme="https://tig.red/categories/java%E8%BF%9B%E9%98%B6/"/>
     
     
-    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    <category term="java" scheme="https://tig.red/tags/java/"/>
     
-    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
     
-    <category term="锁" scheme="https://zhouxinghang.github.io/tags/%E9%94%81/"/>
+    <category term="锁" scheme="https://tig.red/tags/%E9%94%81/"/>
     
   </entry>
   
   <entry>
     <title>hexo deploy 指定 git 账户</title>
-    <link href="https://zhouxinghang.github.io/hexodeploy-edit-gitaccount.html"/>
-    <id>https://zhouxinghang.github.io/hexodeploy-edit-gitaccount.html</id>
+    <link href="https://tig.red/hexodeploy-edit-gitaccount.html"/>
+    <id>https://tig.red/hexodeploy-edit-gitaccount.html</id>
     <published>2019-03-04T03:32:31.000Z</published>
     <updated>2021-11-24T07:09:09.730Z</updated>
     
@@ -396,17 +396,17 @@
     
     
     
-    <category term="计算机操作" scheme="https://zhouxinghang.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/"/>
+    <category term="计算机操作" scheme="https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/"/>
     
     
-    <category term="hexo" scheme="https://zhouxinghang.github.io/tags/hexo/"/>
+    <category term="hexo" scheme="https://tig.red/tags/hexo/"/>
     
   </entry>
   
   <entry>
     <title>java内存模型</title>
-    <link href="https://zhouxinghang.github.io/java-memory-model.html"/>
-    <id>https://zhouxinghang.github.io/java-memory-model.html</id>
+    <link href="https://tig.red/java-memory-model.html"/>
+    <id>https://tig.red/java-memory-model.html</id>
     <published>2019-02-28T15:10:47.000Z</published>
     <updated>2021-11-24T07:09:50.964Z</updated>
     
@@ -419,21 +419,21 @@
     
     
     
-    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java%E8%BF%9B%E9%98%B6/"/>
+    <category term="java进阶" scheme="https://tig.red/categories/java%E8%BF%9B%E9%98%B6/"/>
     
     
-    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    <category term="java" scheme="https://tig.red/tags/java/"/>
     
-    <category term="jvm" scheme="https://zhouxinghang.github.io/tags/jvm/"/>
+    <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
     
-    <category term="jmm" scheme="https://zhouxinghang.github.io/tags/jmm/"/>
+    <category term="jmm" scheme="https://tig.red/tags/jmm/"/>
     
   </entry>
   
   <entry>
     <title>伪共享</title>
-    <link href="https://zhouxinghang.github.io/false-sharing.html"/>
-    <id>https://zhouxinghang.github.io/false-sharing.html</id>
+    <link href="https://tig.red/false-sharing.html"/>
+    <id>https://tig.red/false-sharing.html</id>
     <published>2019-02-28T12:04:04.000Z</published>
     <updated>2021-11-24T07:08:57.708Z</updated>
     
@@ -442,19 +442,19 @@
     
     
     
-    <category term="java进阶" scheme="https://zhouxinghang.github.io/categories/java%E8%BF%9B%E9%98%B6/"/>
+    <category term="java进阶" scheme="https://tig.red/categories/java%E8%BF%9B%E9%98%B6/"/>
     
     
-    <category term="java" scheme="https://zhouxinghang.github.io/tags/java/"/>
+    <category term="java" scheme="https://tig.red/tags/java/"/>
     
-    <category term="并发编程" scheme="https://zhouxinghang.github.io/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
+    <category term="并发编程" scheme="https://tig.red/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
   </entry>
   
   <entry>
     <title>Hello World</title>
-    <link href="https://zhouxinghang.github.io/hello-world.html"/>
-    <id>https://zhouxinghang.github.io/hello-world.html</id>
+    <link href="https://tig.red/hello-world.html"/>
+    <id>https://tig.red/hello-world.html</id>
     <published>2019-02-28T02:00:00.000Z</published>
     <updated>2021-11-24T06:54:54.373Z</updated>
     
