@@ -43,6 +43,7 @@ cp themes/next/_config.yml _config.next.yml
 站点信息：title
 hexo 永久链接：url
 nofollow 减少出站链接
+lazeload 图片懒加载
 
 ### 主题配置
 主题： `scheme:Gemini`
@@ -62,7 +63,17 @@ rss 订阅
 
 cloudflare 配置 cdn 加速
 
-![dns配置](https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/1637662627063.jpg)
+![dns配置](https://i.loli.net/2021/11/24/x3U2zQtdoB7nHgE.jpg)
+
+### github 图床 + jsdelivr
+
+推荐使用 picgo 上传图片到 github
+
+jsdelivr cdn 可以直接加速 github 资源。原链接：https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg。 cdn 链接：https://cdn.jsdelivr.net/gh/zhouxinghang/resources/ZBlog/drawio18.svg
+
+picgo 配置如下：
+
+![image-20211124143006109](https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111241430146.png)
 
 ## 参考
 
