@@ -52,6 +52,68 @@
       </tags>
   </entry>
   <entry>
+    <title>disrupt 实现原理</title>
+    <url>/disrupt.html</url>
+    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
+<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
+<span id="more"></span>
+
+<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
+<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
+<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
+<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
+<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
+<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
+<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
+<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
+<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
+<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
+<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
+<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
+<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
+<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
+<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
+<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
+<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
+<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
+<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
+<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
+<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
+<p>重点看 BatchEventProcessor#run 方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>disruptor</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>caffeine 缓存实现原理</title>
     <url>/caffeine.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
@@ -127,65 +189,19 @@
       </tags>
   </entry>
   <entry>
-    <title>disrupt 实现原理</title>
-    <url>/disrupt.html</url>
-    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
-<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
-<span id="more"></span>
-
-<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
-<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
-<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
-<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
-<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
-<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
-<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
-<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
-<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
-<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
-<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
-<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
-<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
-<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
-<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
-<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
-<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
-<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
-<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
-<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
-<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
-<p>重点看 BatchEventProcessor#run 方法</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>分布式、列式存储、实时分析、PB级、聚合查询、</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
 ]]></content>
       <categories>
-        <category>javaWeb</category>
+        <category>大数据</category>
       </categories>
       <tags>
-        <tag>源码</tag>
-        <tag>disruptor</tag>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>bigdata</tag>
       </tags>
   </entry>
   <entry>
@@ -334,20 +350,6 @@
       </tags>
   </entry>
   <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>分布式、列式存储、实时分析、PB级、聚合查询、</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid,hive,bigdata</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>伪共享</title>
     <url>/false-sharing.html</url>
     <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
@@ -433,7 +435,7 @@
 <p><img data-src="https://i.loli.net/2021/11/24/x3U2zQtdoB7nHgE.jpg" alt="dns配置"></p>
 <p><strong>hexo deploy 会覆盖掉 CNAME 文件</strong>，将 CNAME 文件放在 source 目录下即可</p>
 <h3 id="github-图床-jsdelivr"><a href="#github-图床-jsdelivr" class="headerlink" title="github 图床 + jsdelivr"></a>github 图床 + jsdelivr</h3><p>推荐使用 picgo 上传图片到 github</p>
-<p>jsdelivr cdn 可以直接加速 github 资源。原链接：<a href="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg%E3%80%82">https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg。</a> cdn 链接：<a href="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/ZBlog/drawio18.svg">https://cdn.jsdelivr.net/gh/zhouxinghang/resources/ZBlog/drawio18.svg</a></p>
+<p>jsdelivr cdn 可以直接加速 github 资源</p>
 <p>picgo 配置如下：</p>
 <p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111241430146.png" alt="image-20211124143006109"></p>
 <h3 id="next-lazyload"><a href="#next-lazyload" class="headerlink" title="next lazyload"></a>next lazyload</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">npm install hexo-lazyload-image --save</span><br><span class="line">## 使用 npm 官方源进行安装 next-util</span><br><span class="line">npm install next-util --registry=https://registry.npmjs.org</span><br></pre></td></tr></table></figure>
@@ -489,57 +491,6 @@
       <tags>
         <tag>Http</tag>
         <tag>HttpClient</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java常量池</title>
-    <url>/java-constant-pool.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
-<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
-<p>JVM 用一个哈希表记录对常量池的引用。</p>
-<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
-<span id="more"></span>
-
-<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
-<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
-<p>举个栗子。</p>
-<p>一个 HelloWord.java 文件</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
-<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
-</blockquote>
-<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
-<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
-<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
-<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
-<p>在《深入理解Java虚拟机》中有这样的描述：</p>
-<blockquote>
-<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
-</blockquote>
-<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
-<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
-<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
-<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
-<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
-</ul>
-<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
-<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
-<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
-<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
-<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
-]]></content>
-      <categories>
-        <category>java基础</category>
-      </categories>
-      <tags>
-        <tag>jvm</tag>
       </tags>
   </entry>
   <entry>
@@ -683,58 +634,54 @@
       </tags>
   </entry>
   <entry>
-    <title>java内存模型</title>
-    <url>/java-memory-model.html</url>
-    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
-<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
-<blockquote>
-<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
-</blockquote>
+    <title>java常量池</title>
+    <url>/java-constant-pool.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
 <span id="more"></span>
 
-<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
-<p>指令重排序包括：</p>
-<ul>
-<li>编译器优化重排序</li>
-<li>指令级并行重排序</li>
-<li>内存系统的重排序</li>
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
+</blockquote>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
 </ul>
-<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
-<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
-<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
-<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
-<p>8大 happens-before 原则：</p>
-<ul>
-<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
-<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
-<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
-<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
-<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
-<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
-<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
-<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
-</ul>
-<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
-<ul>
-<li>将工作内存1中修改的共享变量刷新到主内存</li>
-<li>将主内存最新的共享变量更新到工作内存2</li>
-</ul>
-<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
-<ul>
-<li>线程解锁前，刷新共享变量到主存</li>
-<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
-</ul>
-<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
-<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
 ]]></content>
       <categories>
-        <category>java进阶</category>
+        <category>java基础</category>
       </categories>
       <tags>
-        <tag>java</tag>
         <tag>jvm</tag>
-        <tag>jmm</tag>
       </tags>
   </entry>
   <entry>
@@ -918,6 +865,61 @@
       <tags>
         <tag>java</tag>
         <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java内存模型</title>
+    <url>/java-memory-model.html</url>
+    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
+<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
+<blockquote>
+<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+</blockquote>
+<span id="more"></span>
+
+<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
+<p>指令重排序包括：</p>
+<ul>
+<li>编译器优化重排序</li>
+<li>指令级并行重排序</li>
+<li>内存系统的重排序</li>
+</ul>
+<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
+<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
+<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
+<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
+<p>8大 happens-before 原则：</p>
+<ul>
+<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
+<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
+<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
+<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
+<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
+<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
+<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
+<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
+</ul>
+<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
+<ul>
+<li>将工作内存1中修改的共享变量刷新到主内存</li>
+<li>将主内存最新的共享变量更新到工作内存2</li>
+</ul>
+<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
+<ul>
+<li>线程解锁前，刷新共享变量到主存</li>
+<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
+</ul>
+<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
+<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>jmm</tag>
       </tags>
   </entry>
   <entry>
@@ -1158,6 +1160,22 @@
       <tags>
         <tag>spring</tag>
         <tag>threadlocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>unix-sockets-and-tcp-ip-sockets</title>
+    <url>/unix-sockets-and-tcp-ip-sockets.html</url>
+    <content><![CDATA[<h2 id="Unix-Sockets"><a href="#Unix-Sockets" class="headerlink" title="## Unix Sockets"></a>## Unix Sockets</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP 套接字效率更高。</p>
+<p>通过以下命令来列出本机 unix 套接字</p>
+<p>Linux: <code>netstat -a -p --unix</code></p>
+<p>Mac: <code>netstat -a -f unix</code></p>
+<p>Windows: 没有 unix 套接字，有个类似的机制叫做<strong>Named pipes</strong>。win10 支持 Unix 套接字，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
+<h2 id="TCP-IP-Sockets"><a href="#TCP-IP-Sockets" class="headerlink" title="TCP/IP Sockets"></a>TCP/IP Sockets</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP 套接字链接由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
+]]></content>
+      <tags>
+        <tag>socket</tag>
+        <tag>tcp</tag>
       </tags>
   </entry>
   <entry>
