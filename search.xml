@@ -1,57 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>ReentrantLock 实现原理</title>
-    <url>/ReentrantLock.html</url>
-    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
-<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
-<span id="more"></span>
-
-<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
-<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
-<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
-<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
-<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
-<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
-<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
-<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
-<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
-<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
-<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
-<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
-<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
-<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
-<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
-<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
-<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
-<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
-<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
-<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
-<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
-<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
-<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
-<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
-]]></content>
-      <categories>
-        <category>并发编程</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-        <tag>源码</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>caffeine 缓存实现原理</title>
     <url>/caffeine.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
@@ -122,8 +71,59 @@
         <category>javaWeb</category>
       </categories>
       <tags>
-        <tag>源码</tag>
         <tag>caffeine</tag>
+        <tag>源码</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ReentrantLock 实现原理</title>
+    <url>/ReentrantLock.html</url>
+    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
+<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
+<span id="more"></span>
+
+<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
+<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
+<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
+<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
+<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
+<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
+<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
+<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
+<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
+<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
+<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
+<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
+<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
+<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
+<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
+<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
+<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
+<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
+<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
+<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
+<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
+<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
+<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
+]]></content>
+      <categories>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>AQS</tag>
       </tags>
   </entry>
   <entry>
@@ -350,24 +350,6 @@
       </tags>
   </entry>
   <entry>
-    <title>伪共享</title>
-    <url>/false-sharing.html</url>
-    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
-<span id="more"></span>
-
-<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
-<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
-<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>并发编程</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Hello World</title>
     <url>/hello-world.html</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
@@ -384,6 +366,24 @@
 
 <p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 ]]></content>
+  </entry>
+  <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<span id="more"></span>
+
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
+      </tags>
   </entry>
   <entry>
     <title>hexo5-next8 配置</title>
@@ -450,6 +450,25 @@
       </tags>
   </entry>
   <entry>
+    <title>hexo deploy 指定 git 账户</title>
+    <url>/hexodeploy-edit-gitaccount.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
+<span id="more"></span>
+
+<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
+
+<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
+]]></content>
+      <categories>
+        <category>计算机操作</category>
+      </categories>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Http 407 问题排查</title>
     <url>/http-407-fix.html</url>
     <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
@@ -472,25 +491,6 @@
       <tags>
         <tag>Http</tag>
         <tag>HttpClient</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>hexo deploy 指定 git 账户</title>
-    <url>/hexodeploy-edit-gitaccount.html</url>
-    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
-<span id="more"></span>
-
-<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
-
-<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
-]]></content>
-      <categories>
-        <category>计算机操作</category>
-      </categories>
-      <tags>
-        <tag>hexo</tag>
       </tags>
   </entry>
   <entry>

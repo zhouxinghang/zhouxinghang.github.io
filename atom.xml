@@ -117,9 +117,9 @@
     <category term="并发编程" scheme="https://tig.red/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
     
-    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
-    
     <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
+    
+    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
     
   </entry>
   
@@ -160,9 +160,9 @@
     <category term="javaWeb" scheme="https://tig.red/categories/javaWeb/"/>
     
     
-    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
-    
     <category term="caffeine" scheme="https://tig.red/tags/caffeine/"/>
+    
+    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
     
   </entry>
   
