@@ -350,6 +350,24 @@
       </tags>
   </entry>
   <entry>
+    <title>Hello World</title>
+    <url>/hello-world.html</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
     <title>伪共享</title>
     <url>/false-sharing.html</url>
     <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
@@ -368,22 +386,23 @@
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/hello-world.html</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+    <title>hexo deploy 指定 git 账户</title>
+    <url>/hexodeploy-edit-gitaccount.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
+<span id="more"></span>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
 ]]></content>
+      <categories>
+        <category>计算机操作</category>
+      </categories>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
   </entry>
   <entry>
     <title>hexo5-next8 配置</title>
@@ -450,50 +469,6 @@
       </tags>
   </entry>
   <entry>
-    <title>hexo deploy 指定 git 账户</title>
-    <url>/hexodeploy-edit-gitaccount.html</url>
-    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
-<span id="more"></span>
-
-<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
-
-<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
-]]></content>
-      <categories>
-        <category>计算机操作</category>
-      </categories>
-      <tags>
-        <tag>hexo</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Http 407 问题排查</title>
-    <url>/http-407-fix.html</url>
-    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
-<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
-<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
-<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
-<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
-<span id="more"></span>
-
-<p>看看 httpClient 的 debug 日志</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
-<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
-]]></content>
-      <categories>
-        <category>异常排查</category>
-      </categories>
-      <tags>
-        <tag>Http</tag>
-        <tag>HttpClient</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java常量池</title>
     <url>/java-constant-pool.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
@@ -541,6 +516,214 @@
         <category>java基础</category>
       </categories>
       <tags>
+        <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Http 407 问题排查</title>
+    <url>/http-407-fix.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
+<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
+<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
+<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
+<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
+<span id="more"></span>
+
+<p>看看 httpClient 的 debug 日志</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
+<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
+]]></content>
+      <categories>
+        <category>异常排查</category>
+      </categories>
+      <tags>
+        <tag>Http</tag>
+        <tag>HttpClient</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>jvm参数</title>
+    <url>/jvm-options.html</url>
+    <content><![CDATA[<h2 id="X-与-XX-的区别"><a href="#X-与-XX-的区别" class="headerlink" title="-X 与 -XX 的区别"></a>-X 与 -XX 的区别</h2><blockquote>
+<p><strong>Standard options</strong> :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).<br><strong>Non-standard options</strong> :Options that begin with -X are non-standard (not guaranteed to be supported on all JVM implementations), and are subject to change without notice in subsequent releases of the Java SDK.<br><strong>Developer options</strong> :Options that begin with -XX are developer options and often have specific system requirements for correct operation and may require privileged access to system configuration parameters; they are not recommended for casual use. These options are also subject to change without notice.</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="XX-参数格式"><a href="#XX-参数格式" class="headerlink" title="-XX 参数格式"></a>-XX 参数格式</h2><p>1）布尔类型 <code>-XX:+option (true)   -XX:-option (false)</code></p>
+<p><code>-XX:+DisableExplicitGC</code></p>
+<p>2）数值类型 <code>-XX:option=number</code>  可以带单位 k,m,g(不区分大小写)</p>
+<p><code>-XX:SurvivorRatio=8 -XX:MetaspaceSize=256M</code></p>
+<p>3）字符类型 <code>-XX:option=String</code>  通常用来设置文件名、路径等</p>
+<p><code>-XX:HeapDumpPath=./java_pid.hprof</code></p>
+<h2 id="关于内存的参数设置"><a href="#关于内存的参数设置" class="headerlink" title="关于内存的参数设置"></a>关于内存的参数设置</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-Xms</td>
+<td>初始堆大小，memory size</td>
+</tr>
+<tr>
+<td>-Xmx</td>
+<td>堆最大值，max memory size，一般和 -Xms 设置同样的大小</td>
+</tr>
+<tr>
+<td>-Xmn</td>
+<td>新生代大小，new memory size</td>
+</tr>
+<tr>
+<td>-Xss</td>
+<td>线程栈大小，stack size</td>
+</tr>
+<tr>
+<td>-XX:PermSize=256m</td>
+<td>永生代初始大小，JDK 8无效，JDK8 将永生代移入到 metaspace</td>
+</tr>
+<tr>
+<td>-XX:MaxPermSize=512m</td>
+<td>永生代最大值，JDK 8无效</td>
+</tr>
+<tr>
+<td>-XX:MaxMetaspaceSize=512m</td>
+<td>元空间初始化大小，JDK 8</td>
+</tr>
+<tr>
+<td>-XX:newRatio=2</td>
+<td>默认是2，新生代站1/3</td>
+</tr>
+<tr>
+<td>-XX:Survivor=8</td>
+<td>默认是8，两个 Survivor 共占用 2/10</td>
+</tr>
+<tr>
+<td>-XX:NewSize</td>
+<td>新生代初始化大小，一般和 -XX:MaxNewSize 设置同样大小，避免新生代内存伸缩</td>
+</tr>
+<tr>
+<td>-XX:MaxNewSize</td>
+<td>新生代最大值</td>
+</tr>
+<tr>
+<td>-XX:InitialCodeCacheSize=128m</td>
+<td>“代码缓存”大小，“代码缓存”用来存储方法编译生成的本地代码</td>
+</tr>
+</tbody></table>
+<h3 id="jvm-设置新生代大小"><a href="#jvm-设置新生代大小" class="headerlink" title="jvm 设置新生代大小"></a>jvm 设置新生代大小</h3><p>jvm 设置新生代大小有很多组参数，大概分为三组：</p>
+<ul>
+<li><code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code> </li>
+<li><code>-Xmn1024m</code></li>
+<li><code>-XX:NewRatio=2</code> （假设Heap总共是3G）</li>
+</ul>
+<p>在 JDK 4 之后，使用 <code>-Xmn=1024m</code>，相当于同时设置 <code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code>，<strong>推荐使用 -Xmn</strong></p>
+<h2 id="关于-GC-日志相关参数"><a href="#关于-GC-日志相关参数" class="headerlink" title="关于 GC 日志相关参数"></a>关于 GC 日志相关参数</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-XX:+PrintGC</td>
+<td>打印GC日志</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCDetails</td>
+<td>打印GC详细日志，包括-XX:+PrintGC</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCTimeStamps</td>
+<td>打印GC时间戳</td>
+</tr>
+<tr>
+<td>-XX:+PrintGCDateStamps</td>
+<td>打印GC时间戳，以日期为准</td>
+</tr>
+<tr>
+<td>-XX:+PrintHeapAtGC</td>
+<td>在运行GC的前后打印堆信息</td>
+</tr>
+<tr>
+<td>-XX:+PrintTenuringDistribution</td>
+<td>新生代GC的时候，打印存活对象的年龄分布</td>
+</tr>
+<tr>
+<td>-XX:HeapDumpPath=/opt/log/oomlogs</td>
+<td>内存溢出时保存当时的内存快照</td>
+</tr>
+<tr>
+<td>-+HeapDumpOnOutOfMemoryError</td>
+<td>发生OOM时，保存dump内存快照</td>
+</tr>
+</tbody></table>
+<h2 id="关于-GC-行为相关参数"><a href="#关于-GC-行为相关参数" class="headerlink" title="关于 GC 行为相关参数"></a>关于 GC 行为相关参数</h2><h3 id="CMS-相关参数"><a href="#CMS-相关参数" class="headerlink" title="CMS 相关参数"></a>CMS 相关参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-XX:+DisableExplicitGC</td>
+<td>禁用显示调用，System.gc()将成为空调用</td>
+</tr>
+<tr>
+<td>-XX:+UseConcMarkSweepGC</td>
+<td>使用CMS收集器收集老年代，特点是低停顿，停顿少。吞吐量相对较低，适合短连接事务型系统</td>
+</tr>
+<tr>
+<td>-XX:CMSInitiatingOccupancyFraction=80</td>
+<td>在默认设置下，CMS收集器在老年代使用了68%的空间后就会被激活，可以适当调高，实际应用中老年代增长不会太快</td>
+</tr>
+</tbody></table>
+<h3 id="G1-相关参数"><a href="#G1-相关参数" class="headerlink" title="G1 相关参数"></a>G1 相关参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-XX:G1HeapRegionSize=n</td>
+<td>设置Region大小，并非最终值</td>
+</tr>
+<tr>
+<td>-XX:MaxGCPauseMillis</td>
+<td>设置G1收集过程目标时间，默认值200ms，不是硬性条件</td>
+</tr>
+<tr>
+<td>-XX:G1NewSizePercent</td>
+<td>新生代最小值，默认值5%</td>
+</tr>
+<tr>
+<td>-XX:G1MaxNewSizePercent</td>
+<td>新生代最大值，默认值60%</td>
+</tr>
+<tr>
+<td>-XX:ParallelGCThreads</td>
+<td>STW期间，并行GC线程数</td>
+</tr>
+<tr>
+<td>-XX:ConcGCThreads=n</td>
+<td>并发标记阶段，并行执行的线程数</td>
+</tr>
+<tr>
+<td>-XX:InitiatingHeapOccupancyPercent</td>
+<td>设置触发标记周期的 Java 堆占用率阈值。默认值是45%。这里的java堆占比指的是non_young_capacity_bytes，包括old+humongous</td>
+</tr>
+</tbody></table>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://eyesmore.iteye.com/blog/1530996">https://eyesmore.iteye.com/blog/1530996</a><br><a href="https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm">https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm</a></p>
+]]></content>
+      <categories>
+        <category>java基础</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
         <tag>jvm</tag>
       </tags>
   </entry>
@@ -737,189 +920,6 @@
         <tag>java</tag>
         <tag>jvm</tag>
         <tag>jmm</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>jvm参数</title>
-    <url>/jvm-options.html</url>
-    <content><![CDATA[<h2 id="X-与-XX-的区别"><a href="#X-与-XX-的区别" class="headerlink" title="-X 与 -XX 的区别"></a>-X 与 -XX 的区别</h2><blockquote>
-<p><strong>Standard options</strong> :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).<br><strong>Non-standard options</strong> :Options that begin with -X are non-standard (not guaranteed to be supported on all JVM implementations), and are subject to change without notice in subsequent releases of the Java SDK.<br><strong>Developer options</strong> :Options that begin with -XX are developer options and often have specific system requirements for correct operation and may require privileged access to system configuration parameters; they are not recommended for casual use. These options are also subject to change without notice.</p>
-</blockquote>
-<span id="more"></span>
-
-<h2 id="XX-参数格式"><a href="#XX-参数格式" class="headerlink" title="-XX 参数格式"></a>-XX 参数格式</h2><p>1）布尔类型 <code>-XX:+option (true)   -XX:-option (false)</code></p>
-<p><code>-XX:+DisableExplicitGC</code></p>
-<p>2）数值类型 <code>-XX:option=number</code>  可以带单位 k,m,g(不区分大小写)</p>
-<p><code>-XX:SurvivorRatio=8 -XX:MetaspaceSize=256M</code></p>
-<p>3）字符类型 <code>-XX:option=String</code>  通常用来设置文件名、路径等</p>
-<p><code>-XX:HeapDumpPath=./java_pid.hprof</code></p>
-<h2 id="关于内存的参数设置"><a href="#关于内存的参数设置" class="headerlink" title="关于内存的参数设置"></a>关于内存的参数设置</h2><table>
-<thead>
-<tr>
-<th>参数</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>-Xms</td>
-<td>初始堆大小，memory size</td>
-</tr>
-<tr>
-<td>-Xmx</td>
-<td>堆最大值，max memory size，一般和 -Xms 设置同样的大小</td>
-</tr>
-<tr>
-<td>-Xmn</td>
-<td>新生代大小，new memory size</td>
-</tr>
-<tr>
-<td>-Xss</td>
-<td>线程栈大小，stack size</td>
-</tr>
-<tr>
-<td>-XX:PermSize=256m</td>
-<td>永生代初始大小，JDK 8无效，JDK8 将永生代移入到 metaspace</td>
-</tr>
-<tr>
-<td>-XX:MaxPermSize=512m</td>
-<td>永生代最大值，JDK 8无效</td>
-</tr>
-<tr>
-<td>-XX:MaxMetaspaceSize=512m</td>
-<td>元空间初始化大小，JDK 8</td>
-</tr>
-<tr>
-<td>-XX:newRatio=2</td>
-<td>默认是2，新生代站1/3</td>
-</tr>
-<tr>
-<td>-XX:Survivor=8</td>
-<td>默认是8，两个 Survivor 共占用 2/10</td>
-</tr>
-<tr>
-<td>-XX:NewSize</td>
-<td>新生代初始化大小，一般和 -XX:MaxNewSize 设置同样大小，避免新生代内存伸缩</td>
-</tr>
-<tr>
-<td>-XX:MaxNewSize</td>
-<td>新生代最大值</td>
-</tr>
-<tr>
-<td>-XX:InitialCodeCacheSize=128m</td>
-<td>“代码缓存”大小，“代码缓存”用来存储方法编译生成的本地代码</td>
-</tr>
-</tbody></table>
-<h3 id="jvm-设置新生代大小"><a href="#jvm-设置新生代大小" class="headerlink" title="jvm 设置新生代大小"></a>jvm 设置新生代大小</h3><p>jvm 设置新生代大小有很多组参数，大概分为三组：</p>
-<ul>
-<li><code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code> </li>
-<li><code>-Xmn1024m</code></li>
-<li><code>-XX:NewRatio=2</code> （假设Heap总共是3G）</li>
-</ul>
-<p>在 JDK 4 之后，使用 <code>-Xmn=1024m</code>，相当于同时设置 <code>-XX:NewSize=1024m</code> 和 <code>-XX:MaxNewSize=1024m</code>，<strong>推荐使用 -Xmn</strong></p>
-<h2 id="关于-GC-日志相关参数"><a href="#关于-GC-日志相关参数" class="headerlink" title="关于 GC 日志相关参数"></a>关于 GC 日志相关参数</h2><table>
-<thead>
-<tr>
-<th>参数</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>-XX:+PrintGC</td>
-<td>打印GC日志</td>
-</tr>
-<tr>
-<td>-XX:+PrintGCDetails</td>
-<td>打印GC详细日志，包括-XX:+PrintGC</td>
-</tr>
-<tr>
-<td>-XX:+PrintGCTimeStamps</td>
-<td>打印GC时间戳</td>
-</tr>
-<tr>
-<td>-XX:+PrintGCDateStamps</td>
-<td>打印GC时间戳，以日期为准</td>
-</tr>
-<tr>
-<td>-XX:+PrintHeapAtGC</td>
-<td>在运行GC的前后打印堆信息</td>
-</tr>
-<tr>
-<td>-XX:+PrintTenuringDistribution</td>
-<td>新生代GC的时候，打印存活对象的年龄分布</td>
-</tr>
-<tr>
-<td>-XX:HeapDumpPath=/opt/log/oomlogs</td>
-<td>内存溢出时保存当时的内存快照</td>
-</tr>
-<tr>
-<td>-+HeapDumpOnOutOfMemoryError</td>
-<td>发生OOM时，保存dump内存快照</td>
-</tr>
-</tbody></table>
-<h2 id="关于-GC-行为相关参数"><a href="#关于-GC-行为相关参数" class="headerlink" title="关于 GC 行为相关参数"></a>关于 GC 行为相关参数</h2><h3 id="CMS-相关参数"><a href="#CMS-相关参数" class="headerlink" title="CMS 相关参数"></a>CMS 相关参数</h3><table>
-<thead>
-<tr>
-<th>参数</th>
-<th>含义</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>-XX:+DisableExplicitGC</td>
-<td>禁用显示调用，System.gc()将成为空调用</td>
-</tr>
-<tr>
-<td>-XX:+UseConcMarkSweepGC</td>
-<td>使用CMS收集器收集老年代，特点是低停顿，停顿少。吞吐量相对较低，适合短连接事务型系统</td>
-</tr>
-<tr>
-<td>-XX:CMSInitiatingOccupancyFraction=80</td>
-<td>在默认设置下，CMS收集器在老年代使用了68%的空间后就会被激活，可以适当调高，实际应用中老年代增长不会太快</td>
-</tr>
-</tbody></table>
-<h3 id="G1-相关参数"><a href="#G1-相关参数" class="headerlink" title="G1 相关参数"></a>G1 相关参数</h3><table>
-<thead>
-<tr>
-<th>参数</th>
-<th>含义</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>-XX:G1HeapRegionSize=n</td>
-<td>设置Region大小，并非最终值</td>
-</tr>
-<tr>
-<td>-XX:MaxGCPauseMillis</td>
-<td>设置G1收集过程目标时间，默认值200ms，不是硬性条件</td>
-</tr>
-<tr>
-<td>-XX:G1NewSizePercent</td>
-<td>新生代最小值，默认值5%</td>
-</tr>
-<tr>
-<td>-XX:G1MaxNewSizePercent</td>
-<td>新生代最大值，默认值60%</td>
-</tr>
-<tr>
-<td>-XX:ParallelGCThreads</td>
-<td>STW期间，并行GC线程数</td>
-</tr>
-<tr>
-<td>-XX:ConcGCThreads=n</td>
-<td>并发标记阶段，并行执行的线程数</td>
-</tr>
-<tr>
-<td>-XX:InitiatingHeapOccupancyPercent</td>
-<td>设置触发标记周期的 Java 堆占用率阈值。默认值是45%。这里的java堆占比指的是non_young_capacity_bytes，包括old+humongous</td>
-</tr>
-</tbody></table>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://eyesmore.iteye.com/blog/1530996">https://eyesmore.iteye.com/blog/1530996</a><br><a href="https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm">https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm</a></p>
-]]></content>
-      <categories>
-        <category>java基础</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>jvm</tag>
       </tags>
   </entry>
   <entry>
