@@ -186,7 +186,7 @@
 
   
   <url>
-    <loc>https://tig.red/tags/caffeine/</loc>
+    <loc>https://tig.red/tags/AQS/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -200,7 +200,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/AQS/</loc>
+    <loc>https://tig.red/tags/caffeine/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -228,6 +228,20 @@
   </url>
   
   <url>
+    <loc>https://tig.red/tags/java/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://tig.red/tags/druid/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
@@ -243,20 +257,6 @@
   
   <url>
     <loc>https://tig.red/tags/bigdata/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/java/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -305,21 +305,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/mac/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/ntfs/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/tags/nginx/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -340,13 +333,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/tags/spring/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
@@ -355,6 +341,20 @@
   
   <url>
     <loc>https://tig.red/tags/threadlocal/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/mac/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/ntfs/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -398,13 +398,6 @@
 
   
   <url>
-    <loc>https://tig.red/categories/javaWeb/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
@@ -412,7 +405,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/</loc>
+    <loc>https://tig.red/categories/javaWeb/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -426,7 +419,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/</loc>
+    <loc>https://tig.red/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -441,6 +434,13 @@
   
   <url>
     <loc>https://tig.red/categories/java%E5%9F%BA%E7%A1%80/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
