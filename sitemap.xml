@@ -270,13 +270,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/jvm/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/tags/Http/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
@@ -285,6 +278,13 @@
   
   <url>
     <loc>https://tig.red/tags/HttpClient/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/jvm/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -426,6 +426,13 @@
   </url>
   
   <url>
+    <loc>https://tig.red/categories/%E5%BC%82%E5%B8%B8%E6%8E%92%E6%9F%A5/</loc>
+    <lastmod>2021-11-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%93%8D%E4%BD%9C/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
@@ -434,13 +441,6 @@
   
   <url>
     <loc>https://tig.red/categories/java%E5%9F%BA%E7%A1%80/</loc>
-    <lastmod>2021-11-25</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/categories/%E5%BC%82%E5%B8%B8%E6%8E%92%E6%9F%A5/</loc>
     <lastmod>2021-11-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
