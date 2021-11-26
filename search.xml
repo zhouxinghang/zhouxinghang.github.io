@@ -44,7 +44,7 @@
 <p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
 ]]></content>
       <categories>
-        <category>并发编程</category>
+        <category>java</category>
       </categories>
       <tags>
         <tag>AQS</tag>
@@ -127,6 +127,91 @@
       </tags>
   </entry>
   <entry>
+    <title>ddd-overview</title>
+    <url>/ddd-overview.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
+<p>传统开发中，先根据业务需求设计好数据库 ER 图，然后实现代码。这种方式业务逻辑与技术细节精密耦合不利于后续的需求扩展。DDD 中先进行业务领域建模，再实现代码，让业务逻辑不依赖于技术细节（技术细节越往后决定越好）。</p>
+<p>本篇文章是《领域驱动设计模式、原理与时间》读书笔记总结，重点参数领域驱动设计思想，有疑问地方欢迎讨论。文中的业务场景以会议预定系统为例，详见 <a href="https://www.meetup.com/">Meetup.com</a></p>
+<h2 id="DDD-领域概念"><a href="#DDD-领域概念" class="headerlink" title="DDD 领域概念"></a>DDD 领域概念</h2><table>
+<thead>
+<tr>
+<th><strong>名称</strong></th>
+<th><strong>定义</strong></th>
+<th><strong>举例</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实体</td>
+<td>有身份标识，一般对应业务对象，封装属性（不公开），公开领域行为</td>
+<td>会议是个实体，表示一个唯一被创建的会议，包含会议成员、地点、会议主题等属性，提供创建会议、添加成员、添加评论等领域行为</td>
+</tr>
+<tr>
+<td>值对象</td>
+<td>富含行为，无身份，不可变，参数校验</td>
+<td>会议室地址是个值对象，会校验地址合法性，能清晰的表示业务属性。 手机号值对象封装 long 基元属性，有校验参数，业务语义</td>
+</tr>
+<tr>
+<td>聚合</td>
+<td>一组业务紧密管理的实体和值对象，是数据修改和持久化的基本单元 聚合内保持强一致性，聚合间保持最终一致性</td>
+<td>会议是个聚合，MeetingGroup 实体是该聚合的根实体，组成员、组地点等是附属聚合的值对象。对领域外公开创建会议，添加成员的操作</td>
+</tr>
+<tr>
+<td>存储库</td>
+<td>封装资源（不局限于数据库、文件、网络存储），只公开需要的操作。领域模型映射到持久化存储</td>
+<td>会议聚合的存储、更新、查询都由存储库代理完成</td>
+</tr>
+<tr>
+<td>领域事件</td>
+<td>解耦不同领域的依赖，B 领域需要响应处理 A 领域的操作。同一个微服务中可以是同步事件</td>
+<td>MeetingGroup 申请，申请通过后，会发送事件给会议域，会议域创建 MeetingGroup。解耦会议域与管理员域</td>
+</tr>
+<tr>
+<td>领域服务</td>
+<td>领域服务没有任何属性或数据，只是一个领域行为或动作，不适合放在任何聚合内的逻辑行为</td>
+<td>比如领域内通用的校验逻辑</td>
+</tr>
+<tr>
+<td>应用服务</td>
+<td>应用服务对应到一个具体业务场景，通过编排聚合、资源库、领域事件、外部适配接口、领域服务来完成</td>
+<td>Meeting 创建场景，调用存储库获取 MeetingGroup，调用 MeetingGroup 创建会议，通知会议创建事件（推荐放在领域中）</td>
+</tr>
+</tbody></table>
+<h2 id="战略模式——在限界上下文通信"><a href="#战略模式——在限界上下文通信" class="headerlink" title="战略模式——在限界上下文通信"></a>战略模式——在限界上下文通信</h2><p>战略模式看似很虚，but 是最重要的。与领域专家、PM一起讨论提炼问题域，编写 UL。划分领域和限界上下文（Bouded Context），并确定上下文之间的关系。</p>
+<h3 id="什么是领域、子域和限界上下文？"><a href="#什么是领域、子域和限界上下文？" class="headerlink" title="什么是领域、子域和限界上下文？"></a>什么是领域、子域和限界上下文？</h3><p>领域代表现实世界的特定问题和解决方案的集合。限界上下文（Bouded Context）定义了模型的适用范围，是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754130.png" alt="a8be9348bc53f7d5bb0483328cea4b8d.png"></p>
+<p>子域是问题空间的概念，限界上下文是解空间的概念。所以限界上下文一定可以对应上一个子域（子域可以对应多个上下文）。一个限界上下文就是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754160.png" alt="352208ffb7378dd38e895e782449e9a8.png"></p>
+<h3 id="如何划分限界上下文？"><a href="#如何划分限界上下文？" class="headerlink" title="如何划分限界上下文？"></a>如何划分限界上下文？</h3><p>根据业务概念来划分，实际需要参考团队粒度、技术特点做裁剪</p>
+<p>领域概念只在限界上下文内有意义。比如同样是订单，在不同的上下文表示不同的概念</p>
+<h2 id="战术模式——创建有效的领域模型"><a href="#战术模式——创建有效的领域模型" class="headerlink" title="战术模式——创建有效的领域模型"></a>战术模式——创建有效的领域模型</h2><p>梳理清楚上下文之间的关系后，从战术层面上剖析上下文内部的组织关系</p>
+<p>依次确认值对象、实体、领域服务和聚合根。之后确认基础架构和应用层。</p>
+<p>下图是 Meeting Groups 聚合根的代码细节，Meeting Groups 属于 Meetings 限界上下文。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251755738.png" alt="1591c32ac3414813e9050fe78111980f.png"></p>
+<p>下图是整体服务架构：</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754207.png" alt="92a72233fa22d43e5bab22a3993efd06.png"></p>
+<h3 id="如何区分值对象与实体"><a href="#如何区分值对象与实体" class="headerlink" title="如何区分值对象与实体"></a>如何区分值对象与实体</h3><p>值对象只是问题域的属性和特征。实体具有唯一身份标识，具有行为和生命周期。值对象和传统的 java bean 类似，区别是：不可变，有参数校验。</p>
+<p>以图书馆系统为例，图书具有唯一标识是一个实体，有出租、归还等行为。图书的 ISBN 号是图书的 ID 属性是一个值对象。为什么不把 ISBN 定义为 string 简单字段？以为 ISBN 有一些隐藏属性，包括 ISBN 的类型和合法性校验。</p>
+<h3 id="为什么需要聚合"><a href="#为什么需要聚合" class="headerlink" title="为什么需要聚合"></a>为什么需要聚合</h3><p>一些对象具有不可变条件，以采购系统为例，当采购请求被通过后，不能修改采购项。采购项与采购请求两个实体具有不变条件，放在一个聚合中。</p>
+<p>为保证聚合内的强一致性，外界只能引用聚合根，不能引用聚合内部对象。如有必要，聚合返回内部对象的副本给外界。</p>
+<h3 id="领域模型到底是什么"><a href="#领域模型到底是什么" class="headerlink" title="领域模型到底是什么"></a>领域模型到底是什么</h3><p>描述业务逻辑领域概念，偏向代码实现的领域对象。我将其理解为领域层的整个代码实现</p>
+<p>DDD 将业务分为 4 层：UI、应用、领域、基础。其核心是高度提纯、通用、少变化的领域层。领域层对外暴露业务行为接口，驱动应用层和基础层的设计，是谓“领域驱动设计”。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p>没找找到合适的 ddd demo 项目，可以参考下面的图书馆系统的代码。这是一个分层架构，包括表示层、应用层、领域层和基础架构层</p>
+<p>repository 存储库接口定义在 model 中，实现在 infra 中。application 对外的接口接收请求。lending 表示借阅上下文</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754252.png" alt="6ba4df47f06a010a9f327bbc4e9aa836.png"></p>
+<p>lending 表示借阅上下文。book 表示一个领域</p>
+<p>为实现依赖倒置，存储库的接口定义在 model 中，实现在 infra 中</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《领域驱动设计模式、原理与实践》</p>
+<p><a href="https://github.com/kgrzybek/modular-monolith-with-ddd">https://github.com/kgrzybek/modular-monolith-with-ddd</a></p>
+<p><a href="https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA">https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA</a></p>
+]]></content>
+      <categories>
+        <category>读书笔记</category>
+      </categories>
+      <tags>
+        <tag>ddd</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>disrupt 实现原理</title>
     <url>/disrupt.html</url>
     <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
@@ -181,7 +266,7 @@
 <h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
 ]]></content>
       <categories>
-        <category>javaWeb</category>
+        <category>java</category>
       </categories>
       <tags>
         <tag>源码</tag>
@@ -326,7 +411,7 @@
 <p><a href="https://www.jianshu.com/p/4ab37ad30bd2">https://www.jianshu.com/p/4ab37ad30bd2</a></p>
 ]]></content>
       <categories>
-        <category>javaWeb</category>
+        <category>服务容器</category>
       </categories>
       <tags>
         <tag>javaWeb</tag>
@@ -337,8 +422,24 @@
     <title>druid-vs-hive</title>
     <url>/druid-vs-hive.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>分布式、列式存储、实时分析、PB级、聚合查询、</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
 ]]></content>
       <categories>
         <category>大数据</category>
@@ -346,7 +447,7 @@
       <tags>
         <tag>druid</tag>
         <tag>hive</tag>
-        <tag>bigdata</tag>
+        <tag>大数据</tag>
       </tags>
   </entry>
   <entry>
@@ -445,6 +546,28 @@
 </blockquote>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://hexo.io/docs/configuration">https://hexo.io/docs/configuration</a><br><a href="https://theme-next.js.org/docs/theme-settings/">https://theme-next.js.org/docs/theme-settings/</a><br><a href="https://tding.top/archives/42c38b10.html">https://tding.top/archives/42c38b10.html</a><br><a href="https://tding.top/archives/12c6c559.html">https://tding.top/archives/12c6c559.html</a></p>
 ]]></content>
+      <categories>
+        <category>101</category>
+      </categories>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>hexo deploy 指定 git 账户</title>
+    <url>/hexodeploy-edit-gitaccount.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
+<span id="more"></span>
+
+<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
+
+<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
+]]></content>
+      <categories>
+        <category>101</category>
+      </categories>
       <tags>
         <tag>hexo</tag>
       </tags>
@@ -472,25 +595,6 @@
       <tags>
         <tag>Http</tag>
         <tag>HttpClient</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>hexo deploy 指定 git 账户</title>
-    <url>/hexodeploy-edit-gitaccount.html</url>
-    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
-<span id="more"></span>
-
-<h2 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h2><p>在 hexo 全局 _config.yml 中添加配置</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  <span class="built_in">type</span>: git</span><br><span class="line">  repo: &lt;repository url&gt;</span><br><span class="line">  branch: [branch]</span><br><span class="line">  message: [message]</span><br><span class="line">  name: [git user]</span><br><span class="line">  email: [git email]</span><br><span class="line">  extend_dirs: [extend directory]</span><br></pre></td></tr></table></figure>
-
-<p>然后需要删除 .deploy_git 目录，重新 hexo deploy 生成即可</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/hexojs/hexo/issues/2125">https://github.com/hexojs/hexo/issues/2125</a></p>
-]]></content>
-      <categories>
-        <category>计算机操作</category>
-      </categories>
-      <tags>
-        <tag>hexo</tag>
       </tags>
   </entry>
   <entry>
@@ -538,9 +642,10 @@
 <p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
 ]]></content>
       <categories>
-        <category>java基础</category>
+        <category>java</category>
       </categories>
       <tags>
+        <tag>源码</tag>
         <tag>jvm</tag>
       </tags>
   </entry>
@@ -681,7 +786,7 @@
       <tags>
         <tag>java</tag>
         <tag>jvm</tag>
-        <tag>锁</tag>
+        <tag>lock</tag>
       </tags>
   </entry>
   <entry>
@@ -915,11 +1020,91 @@
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://eyesmore.iteye.com/blog/1530996">https://eyesmore.iteye.com/blog/1530996</a><br><a href="https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm">https://stackoverflow.com/questions/7871870/what-is-the-difference-between-x-params-and-xx-params-in-jvm</a></p>
 ]]></content>
       <categories>
-        <category>java基础</category>
+        <category>java</category>
       </categories>
       <tags>
         <tag>java</tag>
         <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>kafka实现原理</title>
+    <url>/kafka-overview.html</url>
+    <content><![CDATA[<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>主要讲解 Consumer 相关知识</p>
+<h2 id="Kafka-背景和架构介绍"><a href="#Kafka-背景和架构介绍" class="headerlink" title="Kafka 背景和架构介绍"></a>Kafka 背景和架构介绍</h2><h3 id="Kafka-简介"><a href="#Kafka-简介" class="headerlink" title="Kafka 简介"></a>Kafka 简介</h3><p>Apache Kafka 是由 LinkedIn 采用 Scala 和 Java 开发的开源流处理软件（open-source stream-processing）平台，并捐赠给了Apache Software Foundation。该项目旨在提供统一的、高吞吐量、低延迟的平台来处理实时数据流。Kafka 可以通过 Kafka Connect 连接到外部系统，并提供了 Kafka Streams。Kafka 使用经过优化的二进制 TCP 协议，并使用抽象 “message set” 将消息分组以减少网络开销并且可以支撑更大的网络数据包，从而使Kafka可以将突发的随机消息写入流转换为线性写入。</p>
+<h3 id="Kafka-特性"><a href="#Kafka-特性" class="headerlink" title="Kafka 特性"></a>Kafka 特性</h3><p>Kafka 是一种分布式的，基于发布/订阅的消息系统，主要特性如下：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分布式</td>
+<td>多分区、多副本、多订阅者</td>
+</tr>
+<tr>
+<td>高性能</td>
+<td>高吞吐量、低延迟、高并发</td>
+</tr>
+<tr>
+<td>扩展性&amp;持久性</td>
+<td>数据持久化、Rebalance、水平扩展</td>
+</tr>
+</tbody></table>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251943649.png" alt="baf84226480a6d98488db6d051f3f64f.png"></p>
+<h4 id="术语"><a href="#术语" class="headerlink" title="术语"></a>术语</h4><ul>
+<li>Broker</li>
+<li>Topic</li>
+<li>Partition</li>
+<li>Producer</li>
+<li>Consumer</li>
+<li>Consumer Group</li>
+</ul>
+<h2 id="Kafka-Consumer"><a href="#Kafka-Consumer" class="headerlink" title="Kafka Consumer"></a>Kafka Consumer</h2><p>相信大家对 Kafka 的整体架构已经很熟了，这里不多介绍了。下面我们重点看看 Kafka Consumer 的特性和一些值得学习的设计。</p>
+<h3 id="Consumer-Group"><a href="#Consumer-Group" class="headerlink" title="Consumer Group"></a>Consumer Group</h3><p>Consumer Group 是 Kafka 提供的可扩展且具有容错性的消费者机制。Consumer Group 定义一组 Consumer 实例，组内的所有 Consumer 协调在一起来消费订阅 Topic 的所有 Partition。主要有以下三个特性：</p>
+<ol>
+<li>Consumer Group 下可以有一个或多个 Consumer 实例。</li>
+<li>Group ID 唯一标识一个 Consumer Group。</li>
+<li>Consumer Group 下所有实例订阅的 Topic 的单个 Partition，只能分配给组内的某个 Consumer 实例消费。这个 Partition 当然也可以被其他的 Group 消费。</li>
+<li>Consumer Group 之间彼此独立，互不影响，它们能够订阅相同的 Topic 而互不干涉。</li>
+</ol>
+<p>基于此，Kafka 可以实现两种消息引擎模式，点对点模式和发布与订阅模式。传统的消息队列模型，消费了就删除，所有的 Consumer 都抢占式消费，伸缩性不好。传统的发布/订阅模型，消费者必须订阅 Topic 的所有分区，缺点也是伸缩性不好。而 Kafka 的 Consumer Group 设计很好地规避了这一点，且同时实现了两种消息引擎模式。</p>
+<h3 id="Offset-管理"><a href="#Offset-管理" class="headerlink" title="Offset 管理"></a>Offset 管理</h3><p>Kafka 中的每个 Partition 都由一系列有序的、不可变的消息组成，这些消息被连续的追加到 Partition 中。Partition 中的每个消息都有一个连续的序号，用于 Partition 唯一标识一条消息。</p>
+<p>Offset 记录着下一条将要发送给 Consumer 的消息的序号。</p>
+<h4 id="Offset-存储"><a href="#Offset-存储" class="headerlink" title="Offset 存储"></a>Offset 存储</h4><p>老版本 Consumer （0.9 版本之前）的位移存储是依托于 ZooKeeper 的，它会自动或手动地将位移数据提交到 ZooKeeper 中保存。当 Consumer 重启后，它能自动从 ZooKeeper 中读取位移数据，从而在上次消费截止的地方继续消费。这种设计使得 Kafka Broker 不需要保存位移数据，减少了 Broker 端需要持有的状态空间，因而有利于实现高伸缩性。</p>
+<p>但是 ZooKeeper 不适用于高频率的写操作，且这样与 ZooKeeper 的耦合太重了。新版本 Consumer 的 Offset 存储交给了 Kafka Topic，即将 Offset 当做一个消息发送给 Kafka，这个消息 Topic 叫做位移主题。当 Consumer 重启后，就从该 Topic 中获取最新的消息即可。</p>
+<p>位移主题的消息格式为 Key-Value 对，Key 为 &lt;Group ID，Topic，Partition&gt;，value 为 Offset 值、时间戳和用户自定义数据等。</p>
+<h4 id="Offset-提交"><a href="#Offset-提交" class="headerlink" title="Offset 提交"></a>Offset 提交</h4><p>Consumer 提交 Offset 的方式有两种：自动提交和手动提交。enable.auto.commit=true 表示开启自动提交，自动提交比较省事，但是把控 Consumer 的位移管理。</p>
+<p>如果选择了自动提交，就会出现这样一个问题，只要 Consumer 一直启动着，它就会无限期地向位移主题写入消息。假设 Consumer 当前消费到了某个主题的最新一条消息，位移是 100，之后该主题没有任何新消息产生，故 Consumer 无消息可消费了，所以位移永远保持在 100。由于是自动提交位移，位移主题中会不停地写入位移 100 的消息。Kafka 只需要保存最新的一条消息，之前的过期消息都可以删除。</p>
+<p>为了删除位移主题中的过期消息，Kafka 采用了一种 Compaction 策略。Compaction 策略有点类似于标记/整理垃圾回收算法，他会扫描唯一主题里面的消息，删除那些过期消息，并将剩下的消息整理到一起。具体过程如下图所示：</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251943694.png" alt="65698c51843aa79c4d4cd5a9d040695a.png"></p>
+<p>Kafka 提供了专门的后台线程定期地巡检待 Compact 的主题，看看是否存在满足条件的可删除数据。这个后台线程叫 Log Cleaner，如果该线程挂掉，就可能会出现位移主题无限膨胀占用过多磁盘空间的问题。</p>
+<h3 id="Rebalance"><a href="#Rebalance" class="headerlink" title="Rebalance"></a>Rebalance</h3><h4 id="发生时机"><a href="#发生时机" class="headerlink" title="发生时机"></a>发生时机</h4><ol>
+<li>组内成员数发生变化</li>
+<li>订阅的 Topic 个数发生变化</li>
+<li>订阅 Topic 的分区数发生变化</li>
+</ol>
+<h4 id="Group-Coordinator"><a href="#Group-Coordinator" class="headerlink" title="Group Coordinator"></a>Group Coordinator</h4><p>当所订阅的 Topic 下 Partition 数量发生变化，或 Consumer 数量发生变化，协调者就会执行 Rebalance 来重新调度 Consumer 与 Partition 的消费关系。在 Rebalance 过程中会发生 Stop The Word，因此要尽量避免 Rebalance。这里我们主要讨论下 Consumer 实例挂了而引发的 Rebalance。</p>
+<p>在正常情况下 Consumer 会定期向 Coordinator（协调者） 发送心跳请求。如果某个 Consumer 没有计时发送心跳情求，Coordinator 就会认为该 Consumer 挂了，并发起一轮新的 Rebalance。这里需要关注几个重要的 Consumer 端参数：</p>
+<ol>
+<li>session.timeout.ms，会话超时时间，该参数的默认值是 10 秒。即如果 Coordinator 在 10 秒之内没有收到 Group 下某 Consumer 实例的心跳，它就会认为这个 Consumer 实例已经挂了。</li>
+<li>heartbeat.interval.ms，心跳间隔，默认 3 秒。Rebalance 操作是通过心跳响应消息告知的。</li>
+<li>max.poll.interval.ms，拉取消息最大时间间隔，默认值是 5 分钟，表示你的 Consumer 程序如果在 5 分钟之内无法消费完 poll 方法返回的消息，那么 Consumer 会主动发起“离开组”的请求，Coordinator 也会开启新一轮 Rebalance。</li>
+</ol>
+<h4 id="Rebalance-问题"><a href="#Rebalance-问题" class="headerlink" title="Rebalance 问题"></a>Rebalance 问题</h4><p>stop the word</p>
+<p>不必要的资源释放</p>
+<h4 id="Kafka-1-1-优化"><a href="#Kafka-1-1-优化" class="headerlink" title="Kafka 1.1 优化"></a>Kafka 1.1 优化</h4><p>加入 prepare rebalance，实现延迟执行。避免因为灰度发布，导致频繁 rebalance 的问题 距离抢票系统</p>
+<h4 id="Kafka-2-3-优化"><a href="#Kafka-2-3-优化" class="headerlink" title="Kafka 2.3 优化"></a>Kafka 2.3 优化</h4><p>黏性 rebalance。记录 consumer 实例，下次还是这个机器占用 partition。 缺点：这样会造成资源的浪费。假设 parition 为 10，机器有 80 台，那么永远是某 10 台占用 partition。记录 consumer 实例强依赖于机器 ip，在云原生场景下，这样的策略可能不会起到作用，因为 ip 是不断变化的。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《深入理解Kafka：核心设计与实践原理》</p>
+<p><a href="https://kknews.cc/code/oko8r6p.html">https://kknews.cc/code/oko8r6p.html</a></p>
+]]></content>
+      <categories>
+        <category>中间件</category>
+      </categories>
+      <tags>
+        <tag>kafka</tag>
       </tags>
   </entry>
   <entry>
@@ -945,7 +1130,7 @@
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
 ]]></content>
       <categories>
-        <category>计算机操作</category>
+        <category>101</category>
       </categories>
       <tags>
         <tag>mac</tag>
@@ -1002,7 +1187,7 @@
 <p><a href="https://martinguo.github.io/blog/2016/08/30/Nginx/">https://martinguo.github.io/blog/2016/08/30/Nginx/</a></p>
 ]]></content>
       <categories>
-        <category>javaWeb</category>
+        <category>服务容器</category>
       </categories>
       <tags>
         <tag>nginx</tag>
@@ -1040,11 +1225,24 @@
 
 ]]></content>
       <categories>
-        <category>javaWeb</category>
+        <category>java进阶</category>
       </categories>
       <tags>
         <tag>protobuf</tag>
-        <tag>序列化</tag>
+        <tag>proto</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>reactor-thread-model-and-its-application-in-netty</title>
+    <url>/reactor-thread-model-and-its-application-in-netty.html</url>
+    <content><![CDATA[]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>reactor</tag>
+        <tag>nio</tag>
+        <tag>netty</tag>
       </tags>
   </entry>
   <entry>
@@ -1095,7 +1293,7 @@
 <p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
 ]]></content>
       <categories>
-        <category>java基础</category>
+        <category>java</category>
       </categories>
       <tags>
         <tag>源码</tag>
@@ -1155,25 +1353,29 @@
 <p><a href="https://zhuanlan.zhihu.com/p/37004598">https://zhuanlan.zhihu.com/p/37004598</a></p>
 ]]></content>
       <categories>
-        <category>java进阶</category>
+        <category>java</category>
       </categories>
       <tags>
+        <tag>源码</tag>
         <tag>spring</tag>
         <tag>threadlocal</tag>
       </tags>
   </entry>
   <entry>
-    <title>unix-sockets-and-tcp-ip-sockets</title>
-    <url>/unix-sockets-and-tcp-ip-sockets.html</url>
-    <content><![CDATA[<h2 id="Unix-Sockets"><a href="#Unix-Sockets" class="headerlink" title="## Unix Sockets"></a>## Unix Sockets</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP 套接字效率更高。</p>
+    <title>Unix socket 与 TCP/IP socket 的区别</title>
+    <url>/unix-socket-and-tcp-ip-socket.html</url>
+    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
 <p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
-<p>通过以下命令来列出本机 unix 套接字</p>
+<p>通过以下命令来列出本机 Unix socket</p>
 <p>Linux: <code>netstat -a -p --unix</code></p>
 <p>Mac: <code>netstat -a -f unix</code></p>
-<p>Windows: 没有 unix 套接字，有个类似的机制叫做<strong>Named pipes</strong>。win10 支持 Unix 套接字，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
-<h2 id="TCP-IP-Sockets"><a href="#TCP-IP-Sockets" class="headerlink" title="TCP/IP Sockets"></a>TCP/IP Sockets</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP 套接字链接由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
+<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
+<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
 ]]></content>
+      <categories>
+        <category>计算机网络</category>
+      </categories>
       <tags>
         <tag>socket</tag>
         <tag>tcp</tag>
@@ -1331,9 +1533,8 @@
       </categories>
       <tags>
         <tag>AQS</tag>
-        <tag>锁</tag>
-        <tag>源码分析</tag>
-        <tag>Lock</tag>
+        <tag>源码</tag>
+        <tag>lock</tag>
         <tag>synchronized</tag>
       </tags>
   </entry>
