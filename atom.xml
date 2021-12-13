@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2021-12-13T07:45:19.755Z</updated>
+  <updated>2021-12-13T10:57:27.645Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -20,8 +20,8 @@
     <title>log4j2 远程执行漏洞原理与复现</title>
     <link href="https://tig.red/log4j2-rce.html"/>
     <id>https://tig.red/log4j2-rce.html</id>
-    <published>2021-12-13T04:05:42.000Z</published>
-    <updated>2021-12-13T07:45:19.755Z</updated>
+    <published>2021-12-10T04:05:42.000Z</published>
+    <updated>2021-12-13T10:57:27.645Z</updated>
     
     
     <summary type="html">log4j2 爆发漏洞，该漏洞通过记录某个字符串导致远程执行代码。像Steam，Apple iCloud这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击</summary>
@@ -40,7 +40,7 @@
     <link href="https://tig.red/why-NES-file-so-small.html"/>
     <id>https://tig.red/why-NES-file-so-small.html</id>
     <published>2021-11-27T02:38:54.000Z</published>
-    <updated>2021-11-27T02:44:07.654Z</updated>
+    <updated>2021-12-13T11:04:15.974Z</updated>
     
     
     <summary type="html">NES 俗称红白机，游戏文件非常小但内容丰富，了解该文件的实现原理</summary>
@@ -55,12 +55,14 @@
   </entry>
   
   <entry>
-    <title>reactor-thread-model-and-its-application-in-netty</title>
+    <title>reactor 线程模型及在 netty 中的应用</title>
     <link href="https://tig.red/reactor-thread-model-and-its-application-in-netty.html"/>
     <id>https://tig.red/reactor-thread-model-and-its-application-in-netty.html</id>
     <published>2021-11-26T03:06:05.000Z</published>
-    <updated>2021-11-26T03:23:49.859Z</updated>
+    <updated>2021-12-13T10:58:31.092Z</updated>
     
+    
+    <summary type="html">reactor 是事件驱动模型，netty 基于 nio 的事件驱动线程模型，实现高并发。</summary>
     
     
     
@@ -272,7 +274,7 @@
     <link href="https://tig.red/protobuf-use.html"/>
     <id>https://tig.red/protobuf-use.html</id>
     <published>2019-04-30T13:40:30.000Z</published>
-    <updated>2021-11-26T03:24:08.511Z</updated>
+    <updated>2021-11-26T03:24:08.000Z</updated>
     
     
     <summary type="html">&lt;h2 id=&quot;安装&quot;&gt;&lt;a href=&quot;#安装&quot; class=&quot;headerlink&quot; title=&quot;安装&quot;&gt;&lt;/a&gt;安装&lt;/h2&gt;&lt;ul&gt;

