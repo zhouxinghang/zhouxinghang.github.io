@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2021-12-13T07:42:33.613Z</updated>
+  <updated>2021-12-13T07:45:19.755Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -17,11 +17,11 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>log4j-rce</title>
-    <link href="https://tig.red/log4j-rce.html"/>
-    <id>https://tig.red/log4j-rce.html</id>
+    <title>log4j2 远程执行漏洞原理与复现</title>
+    <link href="https://tig.red/log4j2-rce.html"/>
+    <id>https://tig.red/log4j2-rce.html</id>
     <published>2021-12-13T04:05:42.000Z</published>
-    <updated>2021-12-13T07:42:33.613Z</updated>
+    <updated>2021-12-13T07:45:19.755Z</updated>
     
     
     <summary type="html">log4j2 爆发漏洞，该漏洞通过记录某个字符串导致远程执行代码。像Steam，Apple iCloud这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击</summary>
