@@ -59,7 +59,7 @@
     <link href="https://tig.red/reactor-thread-model-and-its-application-in-netty.html"/>
     <id>https://tig.red/reactor-thread-model-and-its-application-in-netty.html</id>
     <published>2021-11-26T03:06:05.000Z</published>
-    <updated>2021-12-13T10:58:31.092Z</updated>
+    <updated>2021-12-13T11:08:12.387Z</updated>
     
     
     <summary type="html">reactor 是事件驱动模型，netty 基于 nio 的事件驱动线程模型，实现高并发。</summary>

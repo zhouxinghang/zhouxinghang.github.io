@@ -1268,10 +1268,10 @@
     <title>reactor 线程模型及在 netty 中的应用</title>
     <url>/reactor-thread-model-and-its-application-in-netty.html</url>
     <content><![CDATA[<h2 id="IO-模型"><a href="#IO-模型" class="headerlink" title="IO 模型"></a>IO 模型</h2><h3 id="BIO"><a href="#BIO" class="headerlink" title="BIO"></a>BIO</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131825833.png" alt="clipboard.png"></p>
-<h3 id="NIO"><a href="#NIO" class="headerlink" title="NIO"></a>NIO</h3><h3 id="阻塞-I-O-模型"><a href="#阻塞-I-O-模型" class="headerlink" title="#### 阻塞 I/O 模型"></a>#### 阻塞 I/O 模型</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131825717.png" alt="clipboard.png"></p>
+<h3 id="NIO"><a href="#NIO" class="headerlink" title="NIO"></a>NIO</h3><h4 id="阻塞-I-O-模型"><a href="#阻塞-I-O-模型" class="headerlink" title="阻塞 I/O 模型"></a>阻塞 I/O 模型</h4><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131825717.png" alt="clipboard.png"></p>
 <p>用户进程调用 recvfrom，内核没有数据会返回 error（立即返回），有数据会阻塞将数据拷贝到用户态并返回 OK</p>
 <p>所以，nonblocking IO的特点是用户进程需要<strong>不断的主动询问</strong>kernel数据好了没有。</p>
-<h3 id="I-O-多路复用模型"><a href="#I-O-多路复用模型" class="headerlink" title="#### I/O 多路复用模型"></a>#### I/O 多路复用模型</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131826184.png" alt="clipboard.png"></p>
+<h4 id="I-O-多路复用模型"><a href="#I-O-多路复用模型" class="headerlink" title="I/O 多路复用模型"></a>I/O 多路复用模型</h4><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131826184.png" alt="clipboard.png"></p>
 <p>上述轮训 recvfrom，效率较低。这里使用 select/epoll 系统调用，可以监听多个 socker fd。调用 select 阻塞等待返回有 I/O 事件的 fd。然后再调用 recvfrom 获取数据。</p>
 <p>select/epoll 的优势在于多数 I/O 连接。当  I/O 连接很少时，使用 BIO 性能更高（只需要一个 recvfrom 命令）</p>
 <h3 id="AIO"><a href="#AIO" class="headerlink" title="AIO"></a>AIO</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112131836224.png" alt="clipboard.png"></p>
