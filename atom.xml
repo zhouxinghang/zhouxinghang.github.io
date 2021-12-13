@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2021-11-26T03:23:49.859Z</updated>
+  <updated>2021-12-13T07:42:33.613Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -15,6 +15,44 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>log4j-rce</title>
+    <link href="https://tig.red/log4j-rce.html"/>
+    <id>https://tig.red/log4j-rce.html</id>
+    <published>2021-12-13T04:05:42.000Z</published>
+    <updated>2021-12-13T07:42:33.613Z</updated>
+    
+    
+    <summary type="html">log4j2 爆发漏洞，该漏洞通过记录某个字符串导致远程执行代码。像Steam，Apple iCloud这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击</summary>
+    
+    
+    
+    
+    <category term="log4j" scheme="https://tig.red/tags/log4j/"/>
+    
+    <category term="rce" scheme="https://tig.red/tags/rce/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>红白机游戏文件如何做到这么小</title>
+    <link href="https://tig.red/why-NES-file-so-small.html"/>
+    <id>https://tig.red/why-NES-file-so-small.html</id>
+    <published>2021-11-27T02:38:54.000Z</published>
+    <updated>2021-11-27T02:44:07.654Z</updated>
+    
+    
+    <summary type="html">NES 俗称红白机，游戏文件非常小但内容丰富，了解该文件的实现原理</summary>
+    
+    
+    
+    <category term="问答" scheme="https://tig.red/categories/%E9%97%AE%E7%AD%94/"/>
+    
+    
+    <category term="红白机" scheme="https://tig.red/tags/%E7%BA%A2%E7%99%BD%E6%9C%BA/"/>
+    
+  </entry>
   
   <entry>
     <title>reactor-thread-model-and-its-application-in-netty</title>
@@ -416,59 +454,6 @@
     <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
     
     <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>AQS相关</title>
-    <link href="https://tig.red/AQS.html"/>
-    <id>https://tig.red/AQS.html</id>
-    <published>2019-03-12T03:13:14.000Z</published>
-    <updated>2021-11-26T03:19:45.462Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;AQS-简单介绍&quot;&gt;&lt;a href=&quot;#AQS-简单介绍&quot; class=&quot;headerlink&quot; title=&quot;AQS 简单介绍&quot;&gt;&lt;/a&gt;AQS 简单介绍&lt;/h2&gt;&lt;p&gt;AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。&lt;/p&gt;
-&lt;p&gt;内部有一个 &lt;strong&gt;state 变量&lt;/strong&gt;，用于表示一些状态信息，这个状态信息具体由实现类决定，比如一个 ReentrantLock 类这个 state 就表示获取锁的次数。&lt;/p&gt;
-&lt;p&gt;内部维持两个队列，&lt;strong&gt;Sync Queue&lt;/strong&gt; 和 &lt;strong&gt;Condition Queue&lt;/strong&gt;，Sync Queue 是一个双向 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。&lt;/p&gt;
-&lt;p&gt;这个类使用到了&lt;strong&gt;模板方法设计模式&lt;/strong&gt;：定义一个操作中算法的骨架，而将一些步骤的实现延迟到子类中。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="并发编程" scheme="https://tig.red/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
-    
-    
-    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
-    
-    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
-    
-    <category term="lock" scheme="https://tig.red/tags/lock/"/>
-    
-    <category term="synchronized" scheme="https://tig.red/tags/synchronized/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>java中的锁</title>
-    <link href="https://tig.red/java-lock.html"/>
-    <id>https://tig.red/java-lock.html</id>
-    <published>2019-03-05T06:24:30.000Z</published>
-    <updated>2021-11-26T03:19:36.766Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;公平锁和非公平锁&quot;&gt;&lt;a href=&quot;#公平锁和非公平锁&quot; class=&quot;headerlink&quot; title=&quot;公平锁和非公平锁&quot;&gt;&lt;/a&gt;公平锁和非公平锁&lt;/h2&gt;&lt;p&gt;公平锁好处是等待锁的线程不会饿死，但整体效率较低。非公平锁好处是整体效率高一些，但是有些线程可能需要等待很久才能获取到锁。因为非公平锁是可以抢占的。 &lt;/p&gt;
-&lt;p&gt;两者内部都维持一个 AQS 等待队列（FIFO），放置等待等待获取锁的线程。如果释放锁的时候，没有新的线程来获取锁，这时候就会从 AQS 队列头取出线程让其获取到锁。这时候公平锁和非公平锁是一样的。如果释放锁的时候，刚好有新的线程来获取锁，非公平锁就会将锁分配给这个新的线程，这就是&lt;strong&gt;非公平锁的抢占式&lt;/strong&gt;。因为非公平锁中新来的线程有一定几率不会被挂起，&lt;strong&gt;减少了整体线程挂起的几率&lt;/strong&gt;，所以非公平锁性能高于公平锁。 &lt;/p&gt;
-&lt;p&gt;公平锁可以使用new ReentrantLock(true)实现。 &lt;/p&gt;</summary>
-    
-    
-    
-    <category term="java进阶" scheme="https://tig.red/categories/java%E8%BF%9B%E9%98%B6/"/>
-    
-    
-    <category term="java" scheme="https://tig.red/tags/java/"/>
-    
-    <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
-    
-    <category term="lock" scheme="https://tig.red/tags/lock/"/>
     
   </entry>
   
