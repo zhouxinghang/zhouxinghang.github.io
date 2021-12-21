@@ -93,14 +93,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/java-memory-model.html</loc>
+    <loc>https://tig.red/java-lock.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/java-lock.html</loc>
+    <loc>https://tig.red/java-memory-model.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -170,14 +170,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/ddd-overview.html</loc>
+    <loc>https://tig.red/disrupt.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/disrupt.html</loc>
+    <loc>https://tig.red/ddd-overview.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -242,14 +242,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/ddd/</loc>
+    <loc>https://tig.red/tags/disruptor/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://tig.red/tags/disruptor/</loc>
+    <loc>https://tig.red/tags/ddd/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -333,14 +333,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/jmm/</loc>
+    <loc>https://tig.red/tags/lock/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://tig.red/tags/lock/</loc>
+    <loc>https://tig.red/tags/jmm/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -431,20 +431,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/socket/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/tcp/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/tags/spring/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
@@ -453,6 +439,20 @@
   
   <url>
     <loc>https://tig.red/tags/threadlocal/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/socket/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/tcp/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
