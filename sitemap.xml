@@ -9,14 +9,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/about/index.html</loc>
+    <loc>https://tig.red/categories/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/categories/index.html</loc>
+    <loc>https://tig.red/about/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -37,13 +37,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/reactor-thread-model-and-its-application-in-netty.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://tig.red/singleton.html</loc>
     
     <lastmod>2021-12-21</lastmod>
@@ -58,13 +51,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/nginx-implement.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://tig.red/protobuf-use.html</loc>
     
     <lastmod>2021-12-21</lastmod>
@@ -72,7 +58,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/kafka-overview.html</loc>
+    <loc>https://tig.red/reactor-thread-model-and-its-application-in-netty.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -93,21 +79,21 @@
   </url>
   
   <url>
+    <loc>https://tig.red/nginx-implement.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://tig.red/kafka-overview.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://tig.red/java-memory-model.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://tig.red/jvm-options.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://tig.red/java-constant-pool.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -121,7 +107,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/hexodeploy-edit-gitaccount.html</loc>
+    <loc>https://tig.red/jvm-options.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -129,6 +115,34 @@
   
   <url>
     <loc>https://tig.red/http-407-fix.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://tig.red/java-constant-pool.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://tig.red/hexo5-next8.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://tig.red/hexodeploy-edit-gitaccount.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://tig.red/druid-vs-hive.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -149,35 +163,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/hexo5-next8.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://tig.red/docker-base.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://tig.red/druid-vs-hive.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://tig.red/disrupt.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://tig.red/caffeine.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -191,7 +177,21 @@
   </url>
   
   <url>
+    <loc>https://tig.red/disrupt.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://tig.red/ReentrantLock.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://tig.red/caffeine.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -333,14 +333,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/lock/</loc>
+    <loc>https://tig.red/tags/jmm/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://tig.red/tags/jmm/</loc>
+    <loc>https://tig.red/tags/lock/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -431,20 +431,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/spring/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/threadlocal/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/tags/socket/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
@@ -453,6 +439,20 @@
   
   <url>
     <loc>https://tig.red/tags/tcp/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/spring/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/threadlocal/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>

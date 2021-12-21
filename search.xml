@@ -650,6 +650,61 @@
       </tags>
   </entry>
   <entry>
+    <title>java内存模型</title>
+    <url>/java-memory-model.html</url>
+    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
+<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
+<blockquote>
+<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
+</blockquote>
+<span id="more"></span>
+
+<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
+<p>指令重排序包括：</p>
+<ul>
+<li>编译器优化重排序</li>
+<li>指令级并行重排序</li>
+<li>内存系统的重排序</li>
+</ul>
+<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
+<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
+<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
+<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
+<p>8大 happens-before 原则：</p>
+<ul>
+<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
+<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
+<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
+<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
+<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
+<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
+<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
+<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
+</ul>
+<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
+<ul>
+<li>将工作内存1中修改的共享变量刷新到主内存</li>
+<li>将主内存最新的共享变量更新到工作内存2</li>
+</ul>
+<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
+<ul>
+<li>线程解锁前，刷新共享变量到主存</li>
+<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
+</ul>
+<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
+<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>jmm</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java中的锁</title>
     <url>/java-lock.html</url>
     <content><![CDATA[<h2 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h2><p>公平锁好处是等待锁的线程不会饿死，但整体效率较低。非公平锁好处是整体效率高一些，但是有些线程可能需要等待很久才能获取到锁。因为非公平锁是可以抢占的。 </p>
@@ -787,61 +842,6 @@
         <tag>java</tag>
         <tag>jvm</tag>
         <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java内存模型</title>
-    <url>/java-memory-model.html</url>
-    <content><![CDATA[<h2 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h2><h3 id="现代计算机物理内存模型"><a href="#现代计算机物理内存模型" class="headerlink" title="现代计算机物理内存模型"></a>现代计算机物理内存模型</h3><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/memory_model_physical.png" alt="物理内存模型"></p>
-<p><strong>访问局部性</strong>（英语：Locality of reference）</p>
-<blockquote>
-<p>访问局部性分为两种基本形式，一种是时间局部性，另一种是空间局部性。时间局部性指的是，程序在运行时，最近刚刚被引用过的一个内存位置容易再次被引用，比如在调取一个函数的时候，前不久才调取过的本地参数容易再度被调取使用。空间局部性指的是，最近引用过的内存位置以及其周边的内存位置容易再次被使用。空间局部性比较常见于循环中，比如在一个数列中，如果第3个元素在上一个循环中使用，则本次循环中极有可能会使用第4个元素。</p>
-</blockquote>
-<span id="more"></span>
-
-<h3 id="指令重排序"><a href="#指令重排序" class="headerlink" title="指令重排序"></a>指令重排序</h3><p>指令重排序是为了提高程序性能做得优化，比如多次写操作，每次都要会写内存，可以在线程的 working memory 操作完成后，一起回写内存。</p>
-<p>指令重排序包括：</p>
-<ul>
-<li>编译器优化重排序</li>
-<li>指令级并行重排序</li>
-<li>内存系统的重排序</li>
-</ul>
-<h4 id="as-if-serial"><a href="#as-if-serial" class="headerlink" title="as-if-serial"></a>as-if-serial</h4><p>无论如何重排序,程序执行的结果都应该与代码顺序执行的结果一致(Java编译器,运行时和处理器都会保证java在单线程下遵循as-if-serial语义).</p>
-<h4 id="线程的-working-memory"><a href="#线程的-working-memory" class="headerlink" title="线程的 working memory"></a>线程的 working memory</h4><p>是 cache 和寄存器的抽象，解释源于《Concurrent Programming in Java: Design Principles and Patterns, Second Edition》，而不单单是内存的某个部分</p>
-<h2 id="Java-内存模型（Java-Memory-Model）"><a href="#Java-内存模型（Java-Memory-Model）" class="headerlink" title="Java 内存模型（Java Memory Model）"></a>Java 内存模型（Java Memory Model）</h2><p>Java内存模型(Java Memory Model)描述了Java程序中各种变量(线程共享变量)的访问规则,以及在JVM中将变量存储到内存和从内存中读取出变量这样的底层细节.</p>
-<h3 id="happens-before-原则"><a href="#happens-before-原则" class="headerlink" title="happens-before 原则"></a>happens-before 原则</h3><p>规定了 java 指令操作的偏序关系。是 JMM 制定的一些偏序关系，用于保证内存的可见性。</p>
-<p>8大 happens-before 原则：</p>
-<ul>
-<li>单线程happen-before原则：在同一个线程中，书写在前面的操作happen-before后面的操作。</li>
-<li>锁的happen-before原则：同一个锁的unlock操作happen-before此锁的lock操作。</li>
-<li>volatile的happen-before原则：对一个volatile变量的写操作happen-before对此变量的任意操作(当然也包括写操作了)。</li>
-<li>happen-before的传递性原则：如果A操作 happen-before B操作，B操作happen-before C操作，那么A操作happen-before C操作。</li>
-<li>线程启动的happen-before原则：同一个线程的start方法happen-before此线程的其它方法。</li>
-<li>线程中断的happen-before原则：对线程interrupt方法的调用happen-before被中断线程的检测到中断发送的代码。</li>
-<li>线程终结的happen-before原则：线程中的所有操作都happen-before线程的终止检测。</li>
-<li>对象创建的happen-before原则：一个对象的初始化完成先于他的finalize方法调用。</li>
-</ul>
-<h3 id="内存可见性"><a href="#内存可见性" class="headerlink" title="内存可见性"></a>内存可见性</h3><h4 id="共享变量实现可见性原理"><a href="#共享变量实现可见性原理" class="headerlink" title="共享变量实现可见性原理"></a>共享变量实现可见性原理</h4><p>线程1对共享变量的修改对线程2可见，需要2个步骤：</p>
-<ul>
-<li>将工作内存1中修改的共享变量刷新到主内存</li>
-<li>将主内存最新的共享变量更新到工作内存2</li>
-</ul>
-<h4 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a>synchronized</h4><p>JMM 关于synchronized 的两条规定：</p>
-<ul>
-<li>线程解锁前，刷新共享变量到主存</li>
-<li>线程加锁前，获取主存中共享变量最新值到工作内存</li>
-</ul>
-<h4 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h4><p>有内存栅栏（或内存屏障）和防止指令重排序</p>
-<p>JMM 中，在 volatile 变量写操作后加入 store 栅栏（(强制将变量值刷新到主内存中去)），在读操作前加入 load 栅栏（强制从主内存中读取变量的值）</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.jianshu.com/p/1508eedba54d">https://www.jianshu.com/p/1508eedba54d</a><br><a href="https://www.jianshu.com/p/47f999a7c280">https://www.jianshu.com/p/47f999a7c280</a><br><a href="http://ifeve.com/easy-happens-before/">http://ifeve.com/easy-happens-before/</a></p>
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>jvm</tag>
-        <tag>jmm</tag>
       </tags>
   </entry>
   <entry>
@@ -1356,6 +1356,26 @@
       </tags>
   </entry>
   <entry>
+    <title>Unix socket 与 TCP/IP socket 的区别</title>
+    <url>/unix-socket-and-tcp-ip-socket.html</url>
+    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
+<p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
+<p>通过以下命令来列出本机 Unix socket</p>
+<p>Linux: <code>netstat -a -p --unix</code></p>
+<p>Mac: <code>netstat -a -f unix</code></p>
+<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
+<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
+]]></content>
+      <categories>
+        <category>计算机网络</category>
+      </categories>
+      <tags>
+        <tag>socket</tag>
+        <tag>tcp</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>ThreadLocal</title>
     <url>/threadLocal.html</url>
     <content><![CDATA[<h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal</p>
@@ -1414,26 +1434,6 @@
         <tag>源码</tag>
         <tag>spring</tag>
         <tag>threadlocal</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Unix socket 与 TCP/IP socket 的区别</title>
-    <url>/unix-socket-and-tcp-ip-socket.html</url>
-    <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
-<p>MySQL 对此特性的优化，如果发现地址是 localhost，就会使用 unix 套接字来提升性能。具体参考：<a href="https://dev.mysql.com/doc/refman/8.0/en/connecting.html">https://dev.mysql.com/doc/refman/8.0/en/connecting.html</a></p>
-<p>通过以下命令来列出本机 Unix socket</p>
-<p>Linux: <code>netstat -a -p --unix</code></p>
-<p>Mac: <code>netstat -a -f unix</code></p>
-<p>Windows: 没有 Unix socket，有个类似的机制叫做 <strong>Named pipes</strong>。win10 支持 Unix socket，有一些限制，具体参考：<a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/</a></p>
-<h2 id="TCP-IP-socket"><a href="#TCP-IP-socket" class="headerlink" title="TCP/IP socket"></a>TCP/IP socket</h2><p>进程间网络通信机制，也可以实现同一主机进程通信（通过使用环回接口）。一个 IP socket connection 由 &lt;local IP, local port, remote IP and remote port&gt; 唯一标识。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets">https://serverfault.com/questions/124517/what-is-the-difference-between-unix-sockets-and-tcp-ip-sockets</a></p>
-]]></content>
-      <categories>
-        <category>计算机网络</category>
-      </categories>
-      <tags>
-        <tag>socket</tag>
-        <tag>tcp</tag>
       </tags>
   </entry>
   <entry>
