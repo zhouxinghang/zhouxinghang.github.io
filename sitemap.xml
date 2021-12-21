@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://tig.red/java-lock.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://tig.red/tags/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
@@ -16,21 +23,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/why-NES-file-so-small.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://tig.red/about/index.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://tig.red/singleton.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -51,7 +44,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/protobuf-use.html</loc>
+    <loc>https://tig.red/why-NES-file-so-small.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -65,7 +58,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/log4j2-rce.html</loc>
+    <loc>https://tig.red/singleton.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -86,6 +79,13 @@
   </url>
   
   <url>
+    <loc>https://tig.red/protobuf-use.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://tig.red/kafka-overview.html</loc>
     
     <lastmod>2021-12-21</lastmod>
@@ -93,7 +93,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/java-lock.html</loc>
+    <loc>https://tig.red/log4j2-rce.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -333,7 +333,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/lock/</loc>
+    <loc>https://tig.red/tags/Lock/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -460,6 +460,13 @@
   
   <url>
     <loc>https://tig.red/tags/%E7%BA%A2%E7%99%BD%E6%9C%BA/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/lock/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
