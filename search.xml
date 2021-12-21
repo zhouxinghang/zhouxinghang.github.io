@@ -786,7 +786,6 @@
       <tags>
         <tag>java</tag>
         <tag>jvm</tag>
-        <tag>Lock</tag>
       </tags>
   </entry>
   <entry>
@@ -1605,7 +1604,6 @@
       <tags>
         <tag>AQS</tag>
         <tag>源码</tag>
-        <tag>lock</tag>
         <tag>synchronized</tag>
       </tags>
   </entry>

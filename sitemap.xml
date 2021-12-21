@@ -9,6 +9,13 @@
   </url>
   
   <url>
+    <loc>https://tig.red/AQS.html</loc>
+    
+    <lastmod>2021-12-21</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://tig.red/tags/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
@@ -16,14 +23,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/categories/index.html</loc>
+    <loc>https://tig.red/about/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/about/index.html</loc>
+    <loc>https://tig.red/categories/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -198,13 +205,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/AQS.html</loc>
-    
-    <lastmod>2021-12-21</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://tig.red/404.html</loc>
     
     <lastmod>2021-12-21</lastmod>
@@ -333,13 +333,6 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/Lock/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://tig.red/tags/jmm/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
@@ -460,13 +453,6 @@
   
   <url>
     <loc>https://tig.red/tags/%E7%BA%A2%E7%99%BD%E6%9C%BA/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/lock/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
