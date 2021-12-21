@@ -2,14 +2,14 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://tig.red/AQS.html</loc>
+    <loc>https://tig.red/java-lock.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/java-lock.html</loc>
+    <loc>https://tig.red/AQS.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -23,14 +23,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/about/index.html</loc>
+    <loc>https://tig.red/categories/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/categories/index.html</loc>
+    <loc>https://tig.red/about/index.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -72,14 +72,14 @@
   </url>
   
   <url>
-    <loc>https://tig.red/nginx-implement.html</loc>
+    <loc>https://tig.red/mac-NTFS.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/mac-NTFS.html</loc>
+    <loc>https://tig.red/nginx-implement.html</loc>
     
     <lastmod>2021-12-21</lastmod>
     
@@ -221,7 +221,7 @@
 
   
   <url>
-    <loc>https://tig.red/tags/AQS/</loc>
+    <loc>https://tig.red/tags/caffeine/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -235,7 +235,7 @@
   </url>
   
   <url>
-    <loc>https://tig.red/tags/caffeine/</loc>
+    <loc>https://tig.red/tags/AQS/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -333,6 +333,13 @@
   </url>
   
   <url>
+    <loc>https://tig.red/tags/lock/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://tig.red/tags/jmm/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
@@ -341,6 +348,20 @@
   
   <url>
     <loc>https://tig.red/tags/kafka/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/mac/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/ntfs/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -362,34 +383,6 @@
   
   <url>
     <loc>https://tig.red/tags/nginx/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/mac/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/ntfs/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/protobuf/</loc>
-    <lastmod>2021-12-21</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/proto/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -459,6 +452,20 @@
   </url>
   
   <url>
+    <loc>https://tig.red/tags/protobuf/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/proto/</loc>
+    <lastmod>2021-12-21</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://tig.red/tags/synchronized/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
@@ -468,14 +475,14 @@
 
   
   <url>
-    <loc>https://tig.red/categories/java/</loc>
+    <loc>https://tig.red/categories/javaWeb/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://tig.red/categories/javaWeb/</loc>
+    <loc>https://tig.red/categories/java/</loc>
     <lastmod>2021-12-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>

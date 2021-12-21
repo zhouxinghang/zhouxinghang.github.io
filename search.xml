@@ -1,57 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>ReentrantLock 实现原理</title>
-    <url>/ReentrantLock.html</url>
-    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
-<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
-<span id="more"></span>
-
-<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
-<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
-<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
-<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
-<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
-<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
-<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
-<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
-<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
-<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
-<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
-<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
-<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
-<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
-<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
-<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
-<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
-<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
-<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
-<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
-<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
-<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
-<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
-<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-        <tag>源码</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>caffeine 缓存实现原理</title>
     <url>/caffeine.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
@@ -122,8 +71,59 @@
         <category>javaWeb</category>
       </categories>
       <tags>
-        <tag>源码</tag>
         <tag>caffeine</tag>
+        <tag>源码</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ReentrantLock 实现原理</title>
+    <url>/ReentrantLock.html</url>
+    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
+<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
+<span id="more"></span>
+
+<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
+<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
+<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
+<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
+<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
+<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
+<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
+<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
+<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
+<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
+<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
+<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
+<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
+<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
+<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
+<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
+<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
+<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
+<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
+<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
+<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
+<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
+<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>AQS</tag>
       </tags>
   </entry>
   <entry>
@@ -598,58 +598,6 @@
       </tags>
   </entry>
   <entry>
-    <title>java常量池</title>
-    <url>/java-constant-pool.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
-<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
-<p>JVM 用一个哈希表记录对常量池的引用。</p>
-<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
-<span id="more"></span>
-
-<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
-<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
-<p>举个栗子。</p>
-<p>一个 HelloWord.java 文件</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
-<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
-</blockquote>
-<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
-<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
-<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
-<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
-<p>在《深入理解Java虚拟机》中有这样的描述：</p>
-<blockquote>
-<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
-</blockquote>
-<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
-<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
-<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
-<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
-<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
-</ul>
-<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
-<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
-<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
-<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
-<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java中的锁</title>
     <url>/java-lock.html</url>
     <content><![CDATA[<h2 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h2><p>公平锁好处是等待锁的线程不会饿死，但整体效率较低。非公平锁好处是整体效率高一些，但是有些线程可能需要等待很久才能获取到锁。因为非公平锁是可以抢占的。 </p>
@@ -785,6 +733,59 @@
       </categories>
       <tags>
         <tag>java</tag>
+        <tag>jvm</tag>
+        <tag>lock</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java常量池</title>
+    <url>/java-constant-pool.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
+<span id="more"></span>
+
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
+</blockquote>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
+</ul>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
         <tag>jvm</tag>
       </tags>
   </entry>
@@ -1107,6 +1108,36 @@
       </tags>
   </entry>
   <entry>
+    <title>Mac 实现 NTFS 格式硬盘读写</title>
+    <url>/mac-NTFS.html</url>
+    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
+<span id="more"></span>
+
+<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
+<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
+<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
+<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
+</ol>
+<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
+<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
+<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
+<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
+<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
+<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
+<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
+<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
+]]></content>
+      <categories>
+        <category>101</category>
+      </categories>
+      <tags>
+        <tag>mac</tag>
+        <tag>ntfs</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>log4j2 远程执行漏洞原理与复现</title>
     <url>/log4j2-rce.html</url>
     <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
@@ -1192,75 +1223,6 @@
       </categories>
       <tags>
         <tag>nginx</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Mac 实现 NTFS 格式硬盘读写</title>
-    <url>/mac-NTFS.html</url>
-    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
-<span id="more"></span>
-
-<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
-<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
-<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
-<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
-</ol>
-<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
-<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
-<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
-<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
-<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
-<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
-<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
-<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
-</ol>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
-]]></content>
-      <categories>
-        <category>101</category>
-      </categories>
-      <tags>
-        <tag>mac</tag>
-        <tag>ntfs</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>protobuf 安装使用</title>
-    <url>/protobuf-use.html</url>
-    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
-<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
-</li>
-<li><p>解压，cd 到目录下</p>
-</li>
-<li><p>./configure</p>
-</li>
-<li><p>make</p>
-</li>
-<li><p>make check</p>
-</li>
-<li><p>sudo make install</p>
-</li>
-<li><p>which protoc</p>
-</li>
-<li><p>protoc –version</p>
-<span id="more"></span></li>
-</ul>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>protobuf</tag>
-        <tag>proto</tag>
       </tags>
   </entry>
   <entry>
@@ -1452,9 +1414,48 @@
       </tags>
   </entry>
   <entry>
+    <title>protobuf 安装使用</title>
+    <url>/protobuf-use.html</url>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
+<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
+</li>
+<li><p>解压，cd 到目录下</p>
+</li>
+<li><p>./configure</p>
+</li>
+<li><p>make</p>
+</li>
+<li><p>make check</p>
+</li>
+<li><p>sudo make install</p>
+</li>
+<li><p>which protoc</p>
+</li>
+<li><p>protoc –version</p>
+<span id="more"></span></li>
+</ul>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>protobuf</tag>
+        <tag>proto</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>AQS相关</title>
     <url>/AQS.html</url>
-    <content><![CDATA[<h2 id="AQS-简单介绍1"><a href="#AQS-简单介绍1" class="headerlink" title="AQS 简单介绍1"></a>AQS 简单介绍1</h2><p>AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。</p>
+    <content><![CDATA[<h2 id="AQS-简单介绍"><a href="#AQS-简单介绍" class="headerlink" title="AQS 简单介绍"></a>AQS 简单介绍</h2><p>AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。</p>
 <p>内部有一个 <strong>state 变量</strong>，用于表示一些状态信息，这个状态信息具体由实现类决定，比如一个 ReentrantLock 类这个 state 就表示获取锁的次数。</p>
 <p>内部维持两个队列，<strong>Sync Queue</strong> 和 <strong>Condition Queue</strong>，Sync Queue 是一个双向 FIFO 链表，是锁的时候用到。而 Condition Queue 是条件队列，作为锁的等待条件时用到。</p>
 <p>这个类使用到了<strong>模板方法设计模式</strong>：定义一个操作中算法的骨架，而将一些步骤的实现延迟到子类中。</p>
@@ -1602,8 +1603,9 @@
         <category>并发编程</category>
       </categories>
       <tags>
-        <tag>AQS</tag>
         <tag>源码</tag>
+        <tag>AQS</tag>
+        <tag>lock</tag>
         <tag>synchronized</tag>
       </tags>
   </entry>
