@@ -275,56 +275,6 @@
       </tags>
   </entry>
   <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
-<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
-<ul>
-<li>realtime 组件负责数据的实时摄入。</li>
-<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
-<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
-</ul>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
-<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
-<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
-<p>非实时分析：日志分析；文本分析</p>
-<p>数据仓库：数据抽取，加载，转换（ETL）</p>
-<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
-<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid</tag>
-        <tag>hive</tag>
-        <tag>大数据</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>伪共享</title>
-    <url>/false-sharing.html</url>
-    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
-<span id="more"></span>
-
-<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
-<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
-<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>并发编程</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>docker基础</title>
     <url>/docker-base.html</url>
     <content><![CDATA[<h2 id="Docker-简介"><a href="#Docker-简介" class="headerlink" title="Docker 简介"></a>Docker 简介</h2><h3 id="什么是-Docker"><a href="#什么是-Docker" class="headerlink" title="什么是 Docker"></a>什么是 Docker</h3><p>Docker 是 dotCloud 公司创立，go 语言编写，基于 Ubuntu 开发。基于 Linux 内核的 cgroup，namespace，以及 AUFS 类的 Union FS 等技术，对进程进行封装隔离，属于<strong>操作系统层面的虚拟化技术</strong>。隔离的进程独立于宿主和隔离的其他进程，也其曾为容器。</p>
@@ -470,6 +420,56 @@
       </tags>
   </entry>
   <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<span id="more"></span>
+
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
+]]></content>
+      <categories>
+        <category>大数据</category>
+      </categories>
+      <tags>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>大数据</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Hello World</title>
     <url>/hello-world.html</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
@@ -596,6 +596,58 @@
       <tags>
         <tag>Http</tag>
         <tag>HttpClient</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java常量池</title>
+    <url>/java-constant-pool.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
+<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
+<p>JVM 用一个哈希表记录对常量池的引用。</p>
+<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
+<span id="more"></span>
+
+<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
+<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
+<p>举个栗子。</p>
+<p>一个 HelloWord.java 文件</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
+<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
+</blockquote>
+<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
+<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
+<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
+<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
+<p>在《深入理解Java虚拟机》中有这样的描述：</p>
+<blockquote>
+<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
+</blockquote>
+<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
+<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
+<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
+<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
+<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
+</ul>
+<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
+<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
+<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
+<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
+<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>源码</tag>
+        <tag>jvm</tag>
       </tags>
   </entry>
   <entry>
@@ -736,58 +788,6 @@
         <tag>java</tag>
         <tag>jvm</tag>
         <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java常量池</title>
-    <url>/java-constant-pool.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>java 包括三种常量池，分别是 字符串常量池、Class 常量池（也叫常量池表）和运行时常量池。</p>
-<h2 id="字符串常量池（String-Pool）"><a href="#字符串常量池（String-Pool）" class="headerlink" title="字符串常量池（String Pool）"></a>字符串常量池（String Pool）</h2><p>String Pool 是 JVM 实例全局共享的，而 Runtime Constant Pool 是每个类都有一个。</p>
-<p>JVM 用一个哈希表记录对常量池的引用。</p>
-<p>String Pool 在 JDK1.7 之前是存放在方法区中的，JDK1.7 移入到堆中。可以测试下往List中无限放入String，看jdk各个版本的异常信息。jdk6是PermGen Space内存溢出，jdk7和8都是Java heap space内存溢出。</p>
-<span id="more"></span>
-
-<h2 id="常量池表（Constant-Pool-Table）"><a href="#常量池表（Constant-Pool-Table）" class="headerlink" title="常量池表（Constant Pool Table）"></a>常量池表（Constant Pool Table）</h2><p>为了让 java 语言具有良好的跨平台性，java 团队提供了一种可以在所有平台上使用的中间代码——字节码（byte code），字节码需要在虚拟机上运行。像 Groovy、JRuby、Jython、Scala等，也会编译成字节码，也能够在 Java 虚拟机上运行。</p>
-<p>java 文件会编译成 Class 文件，ClassClass 文件包含了 Java 虚拟机指令集和符号表以及其他辅助信息。Class文件中除了包含类的版本、字段、方法、接口等描述信息外，还有一项信息(constant pool table)，用于存放编译器生成的各种字面量(Literal)和符号引用(Symbolic References)。也就是说常量池表示属于 Class 字节码文件中的一类结构化数据，Class 文件内容如下</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/5E8BFA30-24F1-4A65-B8DD-A7506D761CD4.png" alt="Class 文件结构"></p>
-<p>举个栗子。</p>
-<p>一个 HelloWord.java 文件</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWord</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String s = <span class="string">&quot;helloword&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>会编译成 HelloWord.class 文件，通过反编译命令 <code>javap -v  HelloWorld.class</code> 可以查看其内容。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Classfile /Users/zhouxinghang/workspace/study/target/classes/com/zxh/study/test/HelloWord.class</span><br><span class="line">  Last modified <span class="number">2019</span>-<span class="number">3</span>-<span class="number">13</span>; size <span class="number">465</span> bytes</span><br><span class="line">  MD5 checksum 3a7da1e8436a92ff3dacb4f45d30e7d9</span><br><span class="line">  Compiled from <span class="string">&quot;HelloWord.java&quot;</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">com</span>.<span class="title">zxh</span>.<span class="title">study</span>.<span class="title">test</span>.<span class="title">HelloWord</span></span></span><br><span class="line"><span class="class">  <span class="title">minor</span> <span class="title">version</span>: 0</span></span><br><span class="line"><span class="class">  <span class="title">major</span> <span class="title">version</span>: 52</span></span><br><span class="line"><span class="class">  <span class="title">flags</span>: <span class="title">ACC_PUBLIC</span>, <span class="title">ACC_SUPER</span></span></span><br><span class="line"><span class="class"><span class="title">Constant</span> <span class="title">pool</span>:</span></span><br><span class="line"><span class="class">   #1 </span>= Methodref          #<span class="number">4.</span>#<span class="number">20</span>         <span class="comment">// java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">   #<span class="number">2</span> = String             #<span class="number">21</span>            <span class="comment">// helloword</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">22</span>            <span class="comment">// com/zxh/study/test/HelloWord</span></span><br><span class="line">   #<span class="number">4</span> = Class              #<span class="number">23</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">5</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">6</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">7</span> = Utf8               Code</span><br><span class="line">   #<span class="number">8</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">9</span> = Utf8               LocalVariableTable</span><br><span class="line">  #<span class="number">10</span> = Utf8               <span class="keyword">this</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               Lcom/zxh/study/test/HelloWord;</span><br><span class="line">  #<span class="number">12</span> = Utf8               main</span><br><span class="line">  #<span class="number">13</span> = Utf8               ([Ljava/lang/String;)V</span><br><span class="line">  #<span class="number">14</span> = Utf8               args</span><br><span class="line">  #<span class="number">15</span> = Utf8               [Ljava/lang/String;</span><br><span class="line">  #<span class="number">16</span> = Utf8               s</span><br><span class="line">  #<span class="number">17</span> = Utf8               Ljava/lang/String;</span><br><span class="line">  #<span class="number">18</span> = Utf8               SourceFile</span><br><span class="line">  #<span class="number">19</span> = Utf8               HelloWord.java</span><br><span class="line">  #<span class="number">20</span> = NameAndType        #<span class="number">5</span>:#<span class="number">6</span>          <span class="comment">// &quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">  #<span class="number">21</span> = Utf8               helloword</span><br><span class="line">  #<span class="number">22</span> = Utf8               com/zxh/study/test/HelloWord</span><br><span class="line">  #<span class="number">23</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">public</span> com.zxh.study.test.HelloWord();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span></span><br><span class="line">         <span class="number">4</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">7</span>: <span class="number">0</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">5</span>     <span class="number">0</span>  <span class="keyword">this</span>   Lcom/zxh/study/test/HelloWord;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(java.lang.String[])</span></span>;</span><br><span class="line">    descriptor: ([Ljava/lang/String;)V</span><br><span class="line">    flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">2</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: ldc           #<span class="number">2</span>                  <span class="comment">// String helloword</span></span><br><span class="line">         <span class="number">2</span>: astore_1</span><br><span class="line">         <span class="number">3</span>: <span class="keyword">return</span></span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">10</span>: <span class="number">3</span></span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            <span class="number">0</span>       <span class="number">4</span>     <span class="number">0</span>  args   [Ljava/lang/String;</span><br><span class="line">            <span class="number">3</span>       <span class="number">1</span>     <span class="number">1</span>     s   Ljava/lang/String;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="字面量（literal）"><a href="#字面量（literal）" class="headerlink" title="字面量（literal）"></a>字面量（literal）</h3><blockquote>
-<p>在计算机科学中，字面量（literal）是用于表达源代码中一个固定值的表示法（notation）。几乎所有计算机编程语言都具有对基本值的字面量表示，诸如：整数、浮点数以及字符串；而有很多也对布尔类型和字符类型的值也支持字面量表示；还有一些甚至对枚举类型的元素以及像数组、记录和对象等复合类型的值也支持字面量表示法。</p>
-</blockquote>
-<p>上述是计算机科学对字面量的解释，在 Java 中，字面量包括：1.文本字符串 2.八种基本类型的值 3.被声明为 final 的常量等。</p>
-<p>字面量只可以右值出现。如 <code>String s = &quot;helloword&quot;</code>，s 为左值，helloword 为右值，helloword 为字面量。</p>
-<h3 id="符号引用（Symbolic-References）"><a href="#符号引用（Symbolic-References）" class="headerlink" title="符号引用（Symbolic References）"></a>符号引用（Symbolic References）</h3><p>符号引用是编译原理的概念，1是相对于直接引用来说的。在 Java中，符号引用包括：1.类和方法的全限定名 2.字段的名称和描述符 3.方法的名称和描述符。</p>
-<h3 id="常量池表的作用"><a href="#常量池表的作用" class="headerlink" title="常量池表的作用"></a>常量池表的作用</h3><p>常量池表（Class 常量池）是 Class 文件的资源仓库，保存了各种常量。</p>
-<p>在《深入理解Java虚拟机》中有这样的描述：</p>
-<blockquote>
-<p>Java代码在进行Javac编译的时候，并不像C和C++那样有“连接”这一步骤，而是在虚拟机加载Class文件的时候进行动态连接。也就是说，在Class文件中不会保存各个方法、字段的最终内存布局信息，因此这些字段、方法的符号引用不经过运行期转换的话无法得到真正的内存入口地址，也就无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应的符号引用，再在类创建时或运行时解析、翻译到具体的内存地址之中。关于类的创建和动态连接的内容，在虚拟机类加载过程时再进行详细讲解。</p>
-</blockquote>
-<h2 id="运行时常量池（Runtime-Constant-Pool）"><a href="#运行时常量池（Runtime-Constant-Pool）" class="headerlink" title="运行时常量池（Runtime Constant Pool）"></a>运行时常量池（Runtime Constant Pool）</h2><ul>
-<li>JVM 运行时内存中方法区的一部分，所以也是全局共享的，是运行时的内容</li>
-<li>运行时常量池相对于 Class 常量池一大特征就是其具有动态性，Java 规范并不要求常量只能在运行时才产生，也就是说运行时常量池中的内容并不全部来自 Class 常量池，Class 常量池并非运行时常量池的唯一数据输入口；在运行时可以通过代码生成常量并将其放入运行时常量池中</li>
-<li>同方法区一样，当运行时常量池无法申请到新的内存时，将抛出 OutOfMemoryError 异常。</li>
-<li>这部分数据绝大部分是随着 JVM 运行，从常量池表转化而来，每个 Class（不是 Java 对象） 都对应一个运行时常量池。（上面说绝大部分是因为：除了Class 中常量池内容，还可能包括动态生成并加入这里的内容）</li>
-</ul>
-<h2 id="为什么-Java-需要设计常量池，而-C-没有？"><a href="#为什么-Java-需要设计常量池，而-C-没有？" class="headerlink" title="为什么 Java 需要设计常量池，而 C 没有？"></a>为什么 Java 需要设计常量池，而 C 没有？</h2><p>在 C/C++ 中，编译器将多个编译器编译的文件链接成一个可执行文件或 dll 文件，在链接阶段，符号引用就解析为实际地址。而 java 中这种链接是在程序运行时动态进行的。</p>
-<p>jvm 在栈帧(frame) 中进行操作数和方法的动态链接(link)，为了便于链接，jvm 使用常量池来保存跟踪当前类中引用的其他类及其成员变量和成员方法。</p>
-<p>当一个 java class 被编译时，所有的变量和方法都装载到 Class 常量池作为一个符号引用。JVM 实现何时去解析符号引用，可以发生在类加载后的验证步骤称为静态解析，也可以发生在第一次使用的时候称为延迟解析。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/49AE0FEB-FECE-40D0-BF46-6CF0E8D0B1C6.png" alt="java 常量池"></p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://blog.csdn.net/u010297957/article/details/50995869">https://blog.csdn.net/u010297957/article/details/50995869</a></p>
-<p><a href="https://blog.csdn.net/luanlouis/article/details/39960815">https://blog.csdn.net/luanlouis/article/details/39960815</a></p>
-<p><a href="http://blog.jamesdbloom.com/JVMInternals.html">http://blog.jamesdbloom.com/JVMInternals.html</a></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>jvm</tag>
       </tags>
   </entry>
   <entry>

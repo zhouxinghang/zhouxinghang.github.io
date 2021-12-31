@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2021-12-31T04:14:22.024Z</updated>
+  <updated>2021-12-31T04:17:01.589Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -21,18 +21,10 @@
     <link href="https://tig.red/os-organization.html"/>
     <id>https://tig.red/os-organization.html</id>
     <published>2021-12-30T03:36:13.000Z</published>
-    <updated>2021-12-31T04:14:22.024Z</updated>
+    <updated>2021-12-31T04:17:01.589Z</updated>
     
     
-      
-      
-        
-        
-    <summary type="html">&lt;h2 id=&quot;概述&quot;&gt;&lt;a href=&quot;#概述&quot; class=&quot;headerlink&quot; title=&quot;概述&quot;&gt;&lt;/a&gt;概述&lt;/h2&gt;&lt;p&gt;操作系统满足3个要求：多路复用，隔离，交互&lt;/p&gt;
-&lt;p&gt;侧重于以&lt;strong&gt;宏内核&lt;/strong&gt;为中心的主流设计&lt;/p&gt;
-&lt;h2</summary>
-        
-      
+    <summary type="html">操作系统满足3个要求：多路复用，隔离和交互。user/kernel mode 和 page table 实现强隔离。</summary>
     
     
     
