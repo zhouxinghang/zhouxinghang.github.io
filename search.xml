@@ -1,6 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>ReentrantLock 实现原理</title>
+    <url>/ReentrantLock.html</url>
+    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
+<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
+<span id="more"></span>
+
+<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
+<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
+<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
+<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
+<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
+<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
+<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
+<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
+<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
+<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
+<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
+<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
+<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
+<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
+<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
+<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
+<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
+<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
+<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
+<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
+<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
+<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
+<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
+<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
+<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
+]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+        <tag>源码</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>caffeine 缓存实现原理</title>
     <url>/caffeine.html</url>
     <content><![CDATA[<h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>我们知道 HashMap 可以作为进程内缓存，他不受外部系统影响，速度快。但是他不能像分布式缓存那样能够实时刷新，且本地内存有限，需要限定 HashMap 的容量范围，这就涉及到缓存淘汰问题。为了解决本地缓存的这些问题，Guava Cache 应运而生，他提供了异步刷新和 LRU 淘汰策略。Guava Cache 功能虽然强大，但是只是对 LRU 的一层封装，在复杂的业务场景下，LRU 淘汰策略显得力不从心。为此基于  W-TinyLFU(LFU+LRU算法的变种) 淘汰策略的进程内缓存 —— Caffeine Cache 诞生了。</p>
@@ -71,59 +122,9 @@
         <category>javaWeb</category>
       </categories>
       <tags>
+        <tag>源码</tag>
         <tag>caffeine</tag>
-        <tag>源码</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>ReentrantLock 实现原理</title>
-    <url>/ReentrantLock.html</url>
-    <content><![CDATA[<h2 id="Lock-简介"><a href="#Lock-简介" class="headerlink" title="Lock 简介"></a>Lock 简介</h2><p>Lock 是 JDK1.5 之后提供的接口，它提供了和 synchronized 类似的同步功能，比 synchronized 更为灵活，能弥补 synchronized 在一些业务场景中的短板。</p>
-<h2 id="Lock-的实现"><a href="#Lock-的实现" class="headerlink" title="Lock 的实现"></a>Lock 的实现</h2><h3 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h3><p>可重入，排他，公平/非公平</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio18.svg?sanitize=true" alt="656edd2a54b6e7e2d12eee8b5acf364c.png"></p>
-<span id="more"></span>
-
-<h3 id="ReentrantReadWriteLock"><a href="#ReentrantReadWriteLock" class="headerlink" title="ReentrantReadWriteLock"></a>ReentrantReadWriteLock</h3><p>共享&amp;排他，可重入</p>
-<h3 id="StampedLock"><a href="#StampedLock" class="headerlink" title="StampedLock"></a>StampedLock</h3><p>共享锁</p>
-<h3 id="CountdownLatch"><a href="#CountdownLatch" class="headerlink" title="CountdownLatch"></a>CountdownLatch</h3><p>共享锁</p>
-<h2 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h2><p>在 Lock 中，用到了一个同步队列 AQS，全称 AbstractQueuedSynchronizer，它是一个同步工具也是 Lock 用来实现线程同步的核心组件。</p>
-<h3 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h3><p>内部维护一个 FIFO 的双向链表，链表中的每个节点 Node 都记录了一个线程。当线程获取锁失败时，封装成 Node 加入到 AQS 队列中。当获取锁的线程释放锁时，会从队列中唤醒一个阻塞的线程。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio19.svg?sanitize=true" alt="92c2cc530af01b066840778c43f98a23.png"></p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/86E865E0-52DF-44FB-B492-AA61CFEA23B6.png" alt="da2d5aea6b673cc455edac54d4e3481c.png"></p>
-<p>Node 的 state 状态值在不同的实现类中表示不同的意思，</p>
-<h3 id="竞争锁节点的操作"><a href="#竞争锁节点的操作" class="headerlink" title="竞争锁节点的操作"></a>竞争锁节点的操作</h3><h4 id="竞争成功"><a href="#竞争成功" class="headerlink" title="竞争成功"></a>竞争成功</h4><p>假如第二个节点获取到了锁，head指向获取锁的节点，并断开与 next 的连接（前置节点 next 指向 null）</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio20.svg?sanitize=true" alt="f561203cfae0ef0fe86986468953a37c.png"></p>
-<p>获取到锁的线程（头结点），会重新设置 head 指针，不存在竞争，普通操作即可。</p>
-<h4 id="竞争失败"><a href="#竞争失败" class="headerlink" title="竞争失败"></a>竞争失败</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio21.svg?sanitize=true" alt="19b66fb4c796bdafcd10a7de44afa8a4.png"></p>
-<p>只有 CAS 操作成功了，再去设置尾节点的 prev，此时不存在竞争，普通操作即可。</p>
-<h3 id="ReentrantLock-lock-的源码分析"><a href="#ReentrantLock-lock-的源码分析" class="headerlink" title="ReentrantLock#lock 的源码分析"></a>ReentrantLock#lock 的源码分析</h3><h4 id="lock-操作时序图"><a href="#lock-操作时序图" class="headerlink" title="lock 操作时序图"></a>lock 操作时序图</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/drawio22.svg?sanitize=true" alt="a20045e951f6210a66851e5104e9cc25.png"></p>
-<h4 id="NonfairSync-lock"><a href="#NonfairSync-lock" class="headerlink" title="NonfairSync#lock"></a>NonfairSync#lock</h4><p>非公平锁和公平锁的区别是，非公平锁会先尝试修改 state 状态为1，修改成功表示获取锁成功，修改失败，会走 AQS 的 acquire 操作。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/090C1BD5-0DA2-417E-BDC0-7F8DC6080EA6.png" alt="8a589015f47656f44c4874f7bb3cfbe8.png"></p>
-<h4 id="AQS-acquire"><a href="#AQS-acquire" class="headerlink" title="AQS#acquire"></a>AQS#acquire</h4><p>会想尝试获取锁 tryAcquire，获取失败会将当前线程封装成 Node 节点添加到 AQS 队尾 addWaiter，并自旋尝试获取锁 acquireQueued。</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/4BC11C7A-329A-42B6-993B-51A9D077DEED.png" alt="db45385397adbe6de234de48641f96ec.png"></p>
-<h4 id="NonfairSync-tryAcquire"><a href="#NonfairSync-tryAcquire" class="headerlink" title="NonfairSync#tryAcquire"></a>NonfairSync#tryAcquire</h4><p>尝试获取锁，成功返回 true，不成功返回 false</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/C51813C0-1A70-43C2-9904-A34DB96EE26F.png" alt="cfb2330ae916543f626159ebbfeb4aea.png"></p>
-<p>无锁：尝试获取锁。有锁：判断是否是当前线程获取了锁</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/353F2EF6-4909-4DC4-97B4-308B2F2D5413.png" alt="b2812a7ffaf51eed3bb36c411f024e2d.png"></p>
-<h4 id="AQS-addWaiter"><a href="#AQS-addWaiter" class="headerlink" title="AQS#addWaiter"></a>AQS#addWaiter</h4><p>如果 tryAcquire 方法获取锁失败后，会调用 addWaiter 将当前线程封装成 Node 添加到队尾。</p>
-<p>如果队列不为空，尝试一次 CAS 添加对队尾。如果不成功，就调用 enq 方法自旋 CAS 添加到队列尾部</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/247CCDDA-5950-4769-B03F-4BDF87F9D118.png" alt="94da97d14eb4f5b88876b443a85bd147.png"></p>
-<h4 id="流程总结-tryAcquire-gt-addWaiter"><a href="#流程总结-tryAcquire-gt-addWaiter" class="headerlink" title="流程总结 tryAcquire -&gt; addWaiter"></a>流程总结 tryAcquire -&gt; addWaiter</h4><p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8832D866-6264-40BF-8B5F-C7CCC39DD3A4.png" alt="d706ed505dbffc01c27cddc83a5e46b4.png"></p>
-<h4 id="AQS-acquireQueued"><a href="#AQS-acquireQueued" class="headerlink" title="AQS#acquireQueued"></a>AQS#acquireQueued</h4><p>如果前置节点是头结点，就尝试获取锁。否则将前置节点 waitStatus 改为 SIGNAL，然后将当前线程挂起</p>
-<p><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/8A25196E-2E38-4635-AEF1-24401A3ABC89.png" alt="2f9dcc6b6d65837b462638b26989fc30.png"></p>
-<h3 id="ReentrantLock-unlock-源码分析"><a href="#ReentrantLock-unlock-源码分析" class="headerlink" title="ReentrantLock#unlock 源码分析"></a>ReentrantLock#unlock 源码分析</h3><p>释放锁，会唤醒后续的节点，唤醒的节点会在 acquireQueued 方法中继续运行（哪里跌倒，哪里爬起）</p>
-<h3 id="AQS-疑难解惑"><a href="#AQS-疑难解惑" class="headerlink" title="AQS 疑难解惑"></a>AQS 疑难解惑</h3><h4 id="enq-方法返回前置节点"><a href="#enq-方法返回前置节点" class="headerlink" title="enq 方法返回前置节点"></a>enq 方法返回前置节点</h4><p>enq 方法，自旋将 node 添加到队列尾部，返回的是 node 的前置节点</p>
-<h4 id="AQS-需要一个虚拟的-head-节点"><a href="#AQS-需要一个虚拟的-head-节点" class="headerlink" title="AQS 需要一个虚拟的 head 节点"></a>AQS 需要一个虚拟的 head 节点</h4><p>线程挂起，需要将前置节点 ws 改为 SIGNAL 状态，这样才能保证自己被唤醒。虚拟的 head 节点就是为了处理这样的边界情况，保证第一个包含了线程的节点能够被唤醒。</p>
-<h4 id="AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？"><a href="#AQS-通过判断前置节点-waitStatus-来唤醒节点线程，为什么？" class="headerlink" title="AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？"></a>AQS 通过判断前置节点 waitStatus 来唤醒节点线程，为什么？</h4><p>保证状态一致性，防止重复唤醒 </p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.cnblogs.com/stateis0/p/9062045.html">https://www.cnblogs.com/stateis0/p/9062045.html</a></p>
-<p><a href="https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0">https://www.cnblogs.com/dennyzhangdd/p/7218510.html#_label0</a></p>
-]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>源码</tag>
-        <tag>AQS</tag>
+        <tag>java进阶</tag>
       </tags>
   </entry>
   <entry>
@@ -274,6 +275,56 @@
       </tags>
   </entry>
   <entry>
+    <title>druid-vs-hive</title>
+    <url>/druid-vs-hive.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
+<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
+<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
+<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
+<ul>
+<li>realtime 组件负责数据的实时摄入。</li>
+<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
+<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
+<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
+<p>非实时分析：日志分析；文本分析</p>
+<p>数据仓库：数据抽取，加载，转换（ETL）</p>
+<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
+<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
+]]></content>
+      <categories>
+        <category>大数据</category>
+      </categories>
+      <tags>
+        <tag>druid</tag>
+        <tag>hive</tag>
+        <tag>大数据</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<span id="more"></span>
+
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>docker基础</title>
     <url>/docker-base.html</url>
     <content><![CDATA[<h2 id="Docker-简介"><a href="#Docker-简介" class="headerlink" title="Docker 简介"></a>Docker 简介</h2><h3 id="什么是-Docker"><a href="#什么是-Docker" class="headerlink" title="什么是 Docker"></a>什么是 Docker</h3><p>Docker 是 dotCloud 公司创立，go 语言编写，基于 Ubuntu 开发。基于 Linux 内核的 cgroup，namespace，以及 AUFS 类的 Union FS 等技术，对进程进行封装隔离，属于<strong>操作系统层面的虚拟化技术</strong>。隔离的进程独立于宿主和隔离的其他进程，也其曾为容器。</p>
@@ -416,56 +467,6 @@
       <tags>
         <tag>javaWeb</tag>
         <tag>docker</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>druid-vs-hive</title>
-    <url>/druid-vs-hive.html</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
-<h2 id="druid"><a href="#druid" class="headerlink" title="druid"></a>druid</h2><p>Druid 是 MetaMarket 公司研发，专为海量数据集上的做高性能 OLAP (OnLine Analysis Processing)而设计的数据存储和分析系统。主要解决的是对于大量的基于时序的数据进行聚合查询。数据可以实时摄入，进入到 druid 后立即可查。</p>
-<p>Keyword: 分布式、列式存储、实时分析、PB级、聚合查询</p>
-<h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251731981" alt="img"></p>
-<ul>
-<li>realtime 组件负责数据的实时摄入。</li>
-<li>broker 组件负责查询任务的分发以及查询结果的汇总，并将结果返回给用户</li>
-<li>historical 组件负责索引后的历史数据的存储，数据存储在 deep storage。deep storage 可以是本地，也可以是 HDFS 等分布式文件系统</li>
-</ul>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据的插入频率非常高，但是更新频率非常低。大部分的查询为聚合查询（aggregation）和报表查询（reporting queries），例如监控系统</p>
-<h2 id="hive"><a href="#hive" class="headerlink" title="hive"></a>hive</h2><p>Hive 由 FaceBook 开发，用于解决海量结构化日志的数据统计。依赖 HDFS 存储数据，依赖 MapReduce 处理数据。Hive 的执行延迟比较高，因此常用于数据分析，对实时性要求不高的场合。架构图如下</p>
-<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202111251719767.png" alt="架构"></p>
-<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><p>数据汇总：每天/每周用户点击数，流量统计</p>
-<p>非实时分析：日志分析；文本分析</p>
-<p>数据仓库：数据抽取，加载，转换（ETL）</p>
-<p>数据挖掘：用户行为分析；兴趣分区；区域展示</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices">https://www.slideshare.net/Hadoop_Summit/druid-and-hive-together-use-cases-and-best-practices</a></p>
-<p><a href="https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2018/05/22/Hive%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86/</a></p>
-<p><a href="https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5">https://www.infoq.cn/article/fxl2qxxcq-aex14ee8x5</a></p>
-]]></content>
-      <categories>
-        <category>大数据</category>
-      </categories>
-      <tags>
-        <tag>druid</tag>
-        <tag>hive</tag>
-        <tag>大数据</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>伪共享</title>
-    <url>/false-sharing.html</url>
-    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
-<span id="more"></span>
-
-<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
-<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
-<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>并发编程</tag>
       </tags>
   </entry>
   <entry>
@@ -1108,36 +1109,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Mac 实现 NTFS 格式硬盘读写</title>
-    <url>/mac-NTFS.html</url>
-    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
-<span id="more"></span>
-
-<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
-<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
-<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
-<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
-</ol>
-<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
-<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
-<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
-<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
-<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
-<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
-<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
-<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
-</ol>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
-]]></content>
-      <categories>
-        <category>101</category>
-      </categories>
-      <tags>
-        <tag>mac</tag>
-        <tag>ntfs</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>log4j2 远程执行漏洞原理与复现</title>
     <url>/log4j2-rce.html</url>
     <content><![CDATA[<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>使用了 log4j2，2.0~ 2.14.1 版本的均有影响</p>
@@ -1167,6 +1138,36 @@
       <tags>
         <tag>log4j</tag>
         <tag>rce</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Mac 实现 NTFS 格式硬盘读写</title>
+    <url>/mac-NTFS.html</url>
+    <content><![CDATA[<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>Mac本身是支持NTFS写入的，只是NTFS是微软开发，由于版权和一些技术细节原因，苹果不愿公开说自己支持NTFS写入，也是有自己以后可能不支持NTFS写入的考量</p>
+<span id="more"></span>
+
+<h2 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h2><ol>
+<li>挂载上你的NTFS硬盘，查看硬盘名称</li>
+<li>编辑/etc/fstab文件，使其支持NTFS写入</li>
+<li>将/Volumes中的NTFS磁盘快捷方式到Finder</li>
+</ol>
+<h2 id="详细流程"><a href="#详细流程" class="headerlink" title="详细流程"></a>详细流程</h2><ol>
+<li>插上硬盘后，查看你的硬盘名称，这里假设名称是AngleDisk</li>
+<li>打开Applications的Terminal, 你也可以直接spotlight输入terminal打开</li>
+<li>在终端输入sudo nano /etc/fstab 敲击回车</li>
+<li>现在你看到了一个编辑界面，输入LABEL=AngleDisk none ntfs rw,auto,nobrowse后，敲击回车，再Ctrl+X，再敲击Y，再敲击回车</li>
+<li>此时，退出你的移动硬盘，再重新插入，你会发现磁盘没有显示在桌面或是Finder之前出现的地方，别慌</li>
+<li>打开Finder，Command+Shift+G，输入框中输入/Volumes，回车，你就可以看到你的磁盘啦！是可以读写的哟，Enjoy</li>
+<li>方便起见，你可以直接把磁盘拖到Finder侧边栏中，这样下次使用就不用进入到/Volumes目录打开le</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.zhihu.com/question/19571334">https://www.zhihu.com/question/19571334</a></p>
+]]></content>
+      <categories>
+        <category>101</category>
+      </categories>
+      <tags>
+        <tag>mac</tag>
+        <tag>ntfs</tag>
       </tags>
   </entry>
   <entry>
@@ -1223,6 +1224,88 @@
       </categories>
       <tags>
         <tag>nginx</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>os-organization</title>
+    <url>/os-organization.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>操作系统满足3个要求：多路复用，隔离，交互</p>
+<p>侧重于以<strong>宏内核</strong>为中心的主流设计</p>
+<h2 id="Abstracting-physical-resources"><a href="#Abstracting-physical-resources" class="headerlink" title="Abstracting physical resources"></a>Abstracting physical resources</h2><h3 id="程序直接操作资源"><a href="#程序直接操作资源" class="headerlink" title="程序直接操作资源"></a>程序直接操作资源</h3><p>如果应用程序直接操作资源会怎样？应用程序根据自己的需求定制库，直接与硬件资源交互，并以应用程序的最佳方式使用这些资源。一些嵌入式设备或实时系统的操作系统就是这样组织的。</p>
+<p>性能更好，但风险更高，实现更难。程序不能有bug，一旦出 bug 会影响所有所有程序。必须定期放弃 cpu，以便其他程序运行。内存操作，可能会覆盖其他程序的数据。</p>
+<h3 id="资源抽象"><a href="#资源抽象" class="headerlink" title="资源抽象"></a>资源抽象</h3><p>为了实现强隔离， 禁止应用程序直接访问敏感的硬件资源，而是将资源抽象为服务。</p>
+<p>文件系统，通过 <code>open</code>、<code>read</code>、<code>write</code>和<code>close</code>系统调用与存储交互，而不是直接读写磁盘。提升操作便利性和安全性</p>
+<p>虚拟内存，隔离各个进程的内存。</p>
+<p>cpu 调度，实现进程共享 cpu</p>
+<h3 id="资源隔离"><a href="#资源隔离" class="headerlink" title="资源隔离"></a>资源隔离</h3><p>user/kernel mode：cpu 实现隔离</p>
+<p>Virtual Memory：mmu 实现隔离</p>
+<h2 id="User-supervisor-mode-and-system-calls"><a href="#User-supervisor-mode-and-system-calls" class="headerlink" title="User/supervisor mode and system calls"></a>User/supervisor mode and system calls</h2><p>CPU为强隔离提供硬件支持。例如，RISC-V有三种CPU可以执行指令的模式：机器模式(Machine Mode)、用户模式(User Mode)和管理模式(Supervisor Mode)。在机器模式下执行的指令具有完全特权；CPU在机器模式下启动。机器模式主要用于配置计算机。Xv6在机器模式下执行很少的几行代码，然后更改为管理模式。</p>
+<p>应用程序只能执行用户模式的指令（如 add mov），并被称为在<strong>用户空间</strong>中运行，而此时处于管理模式下的软件可以执行特权指令（如 中断 页表 ），并被称为在<strong>内核空间</strong>中运行。在内核空间（或管理模式）中运行的软件被称为内核。</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112301204499.png" alt="image-20211230120407802"></p>
+<h3 id="怎么判断处理-user-mode-还是-kernel-mode"><a href="#怎么判断处理-user-mode-还是-kernel-mode" class="headerlink" title="怎么判断处理 user mode 还是 kernel mode"></a>怎么判断处理 user mode 还是 kernel mode</h3><p>cpu 有个标志位，1 表示 user mode</p>
+<h3 id="如何进入-kernel-mode"><a href="#如何进入-kernel-mode" class="headerlink" title="如何进入 kernel mode"></a>如何进入 kernel mode</h3><p>xv6中调用 ecall(sysCallNo) 就可以跳转到 kernel 执行，入参 sysCallNo 为对应系统调佣的编号。kernel 根据 sysCallNo 找到对应的 system call 并执行。</p>
+<h2 id="微内核与宏内核"><a href="#微内核与宏内核" class="headerlink" title="微内核与宏内核"></a>微内核与宏内核</h2><p><strong>宏内核（monolithic kernel）</strong>：整个操作系统都驻留在内核中，所有系统调用的实现都以管理模式运行</p>
+<p><strong>微内核（microkernel）</strong>：操作系统最基本的部分驻留在内核中，减少内核代码量，降低内核出错风险</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112301219815.png" alt="image-20211230121852437"></p>
+<p>如上图，文件系统作为进程服务 File server 在用户空间，shell 想要访问文件需要与 File server 进程通信。进程间通信需要经过内核。相比于宏内核，多了一次 mode 切换，因此微内核性能较低。一般操作系统都是宏内核</p>
+<h2 id="进程概述"><a href="#进程概述" class="headerlink" title="进程概述"></a>进程概述</h2><h3 id="进程-vs-线程"><a href="#进程-vs-线程" class="headerlink" title="进程 vs 线程"></a>进程 vs 线程</h3><p>进程是资源调度的基本单位，线程是 CPU 调度的基本单位。</p>
+<p>进程抽象给程序提供了一种错觉，即它有自己的专用机器。linux 使用页表（page table，由硬件实现）为每个进程提供自己的地址空间，页表将虚拟地址转换为物理地址</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202112311106723.png" alt="img"></p>
+<p>每个进程都有一个执行线程（简称线程）来执行进程的指令。一个线程可以挂起并且稍后再恢复。内核通过挂起当前线程，并恢复另一线程来实现 cpu 资源共享。</p>
+<p>线程的大部分状态（本地变量、函数调用返回地址）存储在线程的栈区上。每个进程有两个栈区：一个用户栈区和一个内核栈区（<code>p-&gt;kstack</code>）。当进程执行用户指令时，只有它的用户栈在使用，它的内核栈是空的。当进程进入内核（由于系统调用或中断）时，内核代码在进程的内核堆栈上执行；当一个进程在内核中时，它的用户堆栈仍然包含保存的数据，只是不处于活动状态。进程的线程在主动使用它的用户栈和内核栈之间交替。内核栈是独立的（并且不受用户代码的保护），因此即使一个进程破坏了它的用户栈，内核依然可以正常运行。</p>
+<p>进程属性由 proc 结构体表示，<code>p-&gt;xxx</code>来引用<code>proc</code>结构体的元素。    <code>p-&gt;state</code>表明进程是已分配、就绪态、运行态、等待I/O中（阻塞态）还是退出。p-&gt;pagetable，指向该进程页表的指针</p>
+<h2 id="启动-XV6-和第一个进程"><a href="#启动-XV6-和第一个进程" class="headerlink" title="启动 XV6 和第一个进程"></a>启动 XV6 和第一个进程</h2><h3 id="boot-loader"><a href="#boot-loader" class="headerlink" title="boot loader"></a>boot loader</h3><p>机器通电后，rom 中 boot loader 将 xv6 kernel 加载到内存中</p>
+<h3 id="machine-mode"><a href="#machine-mode" class="headerlink" title="machine mode"></a>machine mode</h3><p>cpu 在机器模式下从<code>_entry</code> (kernel/entry.S:6)开始运行xv6。<code>_entry</code>的指令设置了一个栈区，这样 xv6 就可以运行 C 代码。</p>
+<p><code>_entry</code>便调用 C 代码<code>start</code>(<strong>kernel/start.c</strong>:21)。函数<code>start</code>执行一些仅在机器模式下允许的配置，如对时钟芯片进行编程以产生计时器中断。</p>
+<p>完成后切换到管理模式，RISC-V 提供指令<code>mret</code>以进入管理模式</p>
+<h3 id="supervisor-mode"><a href="#supervisor-mode" class="headerlink" title="supervisor mode"></a>supervisor mode</h3><p>进入管理模式。这将导致程序计数器（PC）的值更改为<code>main</code>(<strong>kernel/main.c</strong>:11)函数地址。在<code>main</code> 初始化几个设备和子系统后，便通过调用<code>userinit</code> (<strong>kernel/proc.c</strong>:212)创建第一个进程，第一个进程执行一个用 RISC-V 程序集写的小型程序：<strong>initcode. S</strong> (**user/initcode.S:**1)，它通过调用<code>exec</code>系统调用重新进入内核。</p>
+<p><code>exec</code>用一个新程序（如 <code>/init</code>）替换当前进程的内存和寄存器。一旦内核完成<code>exec</code>，它就返回<code>/init</code>进程中的用户空间。如果需要，<code>init</code>(<strong>user/init.c</strong>:15)将创建一个新的控制台设备文件，然后以文件描述符0、1和2打开它。然后它在控制台上启动一个shell。系统就这样启动了。</p>
+]]></content>
+      <categories>
+        <category>操作系统</category>
+      </categories>
+      <tags>
+        <tag>os</tag>
+        <tag>systemcall</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>protobuf 安装使用</title>
+    <url>/protobuf-use.html</url>
+    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
+<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
+</li>
+<li><p>解压，cd 到目录下</p>
+</li>
+<li><p>./configure</p>
+</li>
+<li><p>make</p>
+</li>
+<li><p>make check</p>
+</li>
+<li><p>sudo make install</p>
+</li>
+<li><p>which protoc</p>
+</li>
+<li><p>protoc –version</p>
+<span id="more"></span></li>
+</ul>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
+
+<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>protobuf</tag>
+        <tag>proto</tag>
       </tags>
   </entry>
   <entry>
@@ -1414,45 +1497,6 @@
       </tags>
   </entry>
   <entry>
-    <title>protobuf 安装使用</title>
-    <url>/protobuf-use.html</url>
-    <content><![CDATA[<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><ul>
-<li><p>官网下载 <a href="https://github.com/protocolbuffers/protobuf/releases">https://github.com/protocolbuffers/protobuf/releases</a></p>
-</li>
-<li><p>解压，cd 到目录下</p>
-</li>
-<li><p>./configure</p>
-</li>
-<li><p>make</p>
-</li>
-<li><p>make check</p>
-</li>
-<li><p>sudo make install</p>
-</li>
-<li><p>which protoc</p>
-</li>
-<li><p>protoc –version</p>
-<span id="more"></span></li>
-</ul>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="编写proto文件（idl文件）"><a href="#编写proto文件（idl文件）" class="headerlink" title="编写proto文件（idl文件）"></a>编写proto文件（idl文件）</h3><p>一个名为 Person.proto文件如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">syntax=&quot;proto3&quot;; </span><br><span class="line">option java_package = &quot;org.serialization.protobuf.quickstart&quot;;   </span><br><span class="line">option java_outer_classname = &quot;PersonProtobuf&quot;;   </span><br><span class="line">message Person  &#123;   </span><br><span class="line">  int32 age = 1;</span><br><span class="line">  string name = 2;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-
-<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>使用 protoc 编译器，将 proto 文件编译成 java 文件</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protoc --java_out=./ Person.proto</span><br></pre></td></tr></table></figure>
-
-<h3 id="序列化调用"><a href="#序列化调用" class="headerlink" title="序列化调用"></a>序列化调用</h3><p>引入 maven 依赖</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.protobuf<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>protobuf-java<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>protobuf</tag>
-        <tag>proto</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>AQS相关</title>
     <url>/AQS.html</url>
     <content><![CDATA[<h2 id="AQS-简单介绍"><a href="#AQS-简单介绍" class="headerlink" title="AQS 简单介绍"></a>AQS 简单介绍</h2><p>AbstractQueuedSynchronizer，抽象同步队列。是实现同步的基础组件，并发包中的锁都是基于 AQS 实现。</p>
@@ -1603,8 +1647,8 @@
         <category>并发编程</category>
       </categories>
       <tags>
-        <tag>源码</tag>
         <tag>AQS</tag>
+        <tag>源码</tag>
         <tag>lock</tag>
         <tag>synchronized</tag>
       </tags>
