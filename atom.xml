@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2021-12-31T04:17:01.589Z</updated>
+  <updated>2022-01-05T09:32:29.908Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -17,11 +17,55 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>os-organization</title>
+    <title>kafka最佳实践</title>
+    <link href="https://tig.red/kafka-best-practices.html"/>
+    <id>https://tig.red/kafka-best-practices.html</id>
+    <published>2022-01-05T08:18:08.000Z</published>
+    <updated>2022-01-05T09:32:29.908Z</updated>
+    
+    
+    <summary type="html">kafka 重要参数 ascks retries 使用。rebalance 规避策略</summary>
+    
+    
+    
+    <category term="中间件" scheme="https://tig.red/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/"/>
+    
+    
+    <category term="kafka" scheme="https://tig.red/tags/kafka/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>操作系统页表</title>
+    <link href="https://tig.red/page-table.html"/>
+    <id>https://tig.red/page-table.html</id>
+    <published>2022-01-05T03:44:30.000Z</published>
+    <updated>2022-01-05T08:18:52.294Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;概述&quot;&gt;&lt;a href=&quot;#概述&quot; class=&quot;headerlink&quot;</summary>
+        
+      
+    
+    
+    
+    <category term="操作系统" scheme="https://tig.red/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+    <category term="os，pagetable" scheme="https://tig.red/tags/os%EF%BC%8Cpagetable/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>操作系统架构</title>
     <link href="https://tig.red/os-organization.html"/>
     <id>https://tig.red/os-organization.html</id>
     <published>2021-12-30T03:36:13.000Z</published>
-    <updated>2021-12-31T04:17:01.589Z</updated>
+    <updated>2022-01-05T08:18:47.869Z</updated>
     
     
     <summary type="html">操作系统满足3个要求：多路复用，隔离和交互。user/kernel mode 和 page table 实现强隔离。</summary>
@@ -413,48 +457,6 @@
     <category term="java" scheme="https://tig.red/tags/java/"/>
     
     <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>nginx实现原理</title>
-    <link href="https://tig.red/nginx-implement.html"/>
-    <id>https://tig.red/nginx-implement.html</id>
-    <published>2019-03-30T12:37:47.000Z</published>
-    <updated>2021-11-26T03:17:48.000Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;简单理解-Nginx&quot;&gt;&lt;a href=&quot;#简单理解-Nginx&quot; class=&quot;headerlink&quot; title=&quot;简单理解 Nginx&quot;&gt;&lt;/a&gt;简单理解 Nginx&lt;/h2&gt;&lt;p&gt;nginx 是静态 web 服务器，意思是 engine x。并发量高，性能优越&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="服务容器" scheme="https://tig.red/categories/%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8/"/>
-    
-    
-    <category term="nginx" scheme="https://tig.red/tags/nginx/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ThreadLocal</title>
-    <link href="https://tig.red/threadLocal.html"/>
-    <id>https://tig.red/threadLocal.html</id>
-    <published>2019-03-20T12:22:41.000Z</published>
-    <updated>2021-11-26T03:18:54.000Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;目标&quot;&gt;&lt;a href=&quot;#目标&quot; class=&quot;headerlink&quot; title=&quot;目标&quot;&gt;&lt;/a&gt;目标&lt;/h2&gt;&lt;p&gt;总结 ThreadLocal 实现原理，缺点，InheritableThreadLocal 原理，ThreadLocalRandom 中如何应用 ThreadLocal，Spring Bean 中如何 应用 ThreadLocal&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="java" scheme="https://tig.red/categories/java/"/>
-    
-    
-    <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
-    
-    <category term="spring" scheme="https://tig.red/tags/spring/"/>
-    
-    <category term="threadlocal" scheme="https://tig.red/tags/threadlocal/"/>
     
   </entry>
   

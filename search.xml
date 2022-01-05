@@ -420,24 +420,6 @@
       </tags>
   </entry>
   <entry>
-    <title>伪共享</title>
-    <url>/false-sharing.html</url>
-    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
-<span id="more"></span>
-
-<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
-<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
-<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
-]]></content>
-      <categories>
-        <category>java进阶</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>并发编程</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>druid-vs-hive</title>
     <url>/druid-vs-hive.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>druid 用于实时查询，粗粒度的查询。hive 用于离线查询，细粒度的查询，比如查询某个用户的数据</p>
@@ -467,6 +449,24 @@
         <tag>druid</tag>
         <tag>hive</tag>
         <tag>大数据</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>伪共享</title>
+    <url>/false-sharing.html</url>
+    <content><![CDATA[<h3 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h3><p>在 cpu 和 内存之间有高速缓存区（cache）,cache 一般集成在 cpu 内部，也叫做 cpu Cache。如下图是一个二级缓存示意图。<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file.png" alt="二级缓存示意图"></p>
+<span id="more"></span>
+
+<p>cache 内部是按照行来存储的，每行称为一个 cache 行，大小为2的n次幂，一个 cache 行 可能会存有多个变量数据<br><img data-src="https://raw.githubusercontent.com/zhouxinghang/resources/master/ZBlog/file2.png" alt="cache行"></p>
+<p>当多个线程同时修改一个 cache 行里面的多个变量时候，由于同时只能有一个线程操作缓存行，所以相比每个变量放到一个缓存行性能会有所下降，这就是伪共享。</p>
+<p>当单个线程顺序访问同一个 cache 行的多个变量，利用<strong>程序运行局部性原理</strong>会加快程序运行。当多个程序同时访问同一个 cache 行的多个变量，会发生竞争，速度会慢</p>
+]]></content>
+      <categories>
+        <category>java进阶</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>并发编程</tag>
       </tags>
   </entry>
   <entry>
@@ -1029,6 +1029,45 @@
       </tags>
   </entry>
   <entry>
+    <title>kafka最佳实践</title>
+    <url>/kafka-best-practices.html</url>
+    <content><![CDATA[<h2 id="KafkaProducer"><a href="#KafkaProducer" class="headerlink" title="KafkaProducer"></a>KafkaProducer</h2><h3 id="消息相关"><a href="#消息相关" class="headerlink" title="消息相关"></a>消息相关</h3><h3 id="一些参数"><a href="#一些参数" class="headerlink" title="一些参数"></a>一些参数</h3><h4 id="ascks"><a href="#ascks" class="headerlink" title="ascks"></a>ascks</h4><p>0,1.-1。从左到右代表了更严格的消息持久化保障。配合 retries 参数一起使用</p>
+<p>0 只保证消息从客户端发出，不处理服务端返回的任何响应</p>
+<p>1 表示只保证消息能成功写入分区的 leader，不保证所有副本都保留这份数据</p>
+<p>-1 保证所有的副本和 leader 都成功写入</p>
+<h4 id="retries"><a href="#retries" class="headerlink" title="retries"></a>retries</h4><p>表示在服务端返回异常的时候客户端重试次数。</p>
+<p>例如业务反馈的 NotLeaderForPartitionException 便是在副本切换时发生的短暂异常。这是只要使用客户端重试策略即可</p>
+<h4 id="buffer-memory-amp-batch-size-amp-linger-ms"><a href="#buffer-memory-amp-batch-size-amp-linger-ms" class="headerlink" title="buffer.memory &amp; batch.size &amp; linger.ms"></a>buffer.memory &amp; batch.size &amp; linger.ms</h4><p>一般 kafka 客户端调用 send 方法后，消息会暂存在 buffer 中，最后批量发送给 kafka broker</p>
+<p>用户线程发送消息会暂存在 buffer （java是堆内内存）中，形成一个个 Batch，每个 Batch 包含多条消息。然后 Sender 线程会把多个Batch 打包成一个 Request 发送到  kafka broker。如下图</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202201051649844.awebp" alt="img"></p>
+<p>buffer.memory 决定内存缓冲大小，设置过小会阻塞用户线程</p>
+<p>batch.size 决定每个 Batch 的大小，决定每次发送给 broker 的数据包大小。太大了，会导致数据此次不能被发送</p>
+<p>linger.ms 消息最大缓存时间，如果 Batch 未凑满到了 linger 时间也会发送给 broker</p>
+<h2 id="KafkaConsumer"><a href="#KafkaConsumer" class="headerlink" title="KafkaConsumer"></a>KafkaConsumer</h2><h3 id="消费-lag-的一些解决办法"><a href="#消费-lag-的一些解决办法" class="headerlink" title="消费 lag 的一些解决办法"></a>消费 lag 的一些解决办法</h3><ol>
+<li>增加消息并发，consumer 扩容</li>
+<li>避免 rebalance<ol>
+<li>升级服务时增加并发度。并发度小，会持续引起 rebalance</li>
+<li>java 客户端 gc 优化，gc 过长会导致心跳超时，从而引起 rebalance</li>
+<li>优化减少每次 poll 的时间，就能保证心跳的及时发送<ol>
+<li>通过 max.poll.records 参数，减少每次 poll 消息的大小</li>
+<li>优化业务逻辑，减少 poll 处理事件。比如 poll 之后异步处理</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<h3 id="适当减少提交-offset-的频率"><a href="#适当减少提交-offset-的频率" class="headerlink" title="适当减少提交 offset 的频率"></a>适当减少提交 offset 的频率</h3><p>kafka comsumer 支持自动提交 offset，将整个 consumer group 的消费进度保存在 ZK（就版本） 或 kafka 中。</p>
+<p>一些开源组件配置了不合理的提交 offset 间隔导致频繁提交 offset，会给 kafka broker 带来很大压力。可以调整 auto.commit.interval.ms 参数来降低提交评率</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://juejin.cn/post/6844903844778868750">https://juejin.cn/post/6844903844778868750</a></p>
+]]></content>
+      <categories>
+        <category>中间件</category>
+      </categories>
+      <tags>
+        <tag>kafka</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>kafka实现原理</title>
     <url>/kafka-overview.html</url>
     <content><![CDATA[<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>主要讲解 Consumer 相关知识</p>
@@ -1227,7 +1266,7 @@
       </tags>
   </entry>
   <entry>
-    <title>os-organization</title>
+    <title>操作系统架构</title>
     <url>/os-organization.html</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>操作系统满足3个要求：多路复用，隔离，交互</p>
 <p>侧重于以<strong>宏内核</strong>为中心的主流设计</p>
@@ -1260,6 +1299,7 @@
 <p>完成后切换到管理模式，RISC-V 提供指令<code>mret</code>以进入管理模式</p>
 <h3 id="supervisor-mode"><a href="#supervisor-mode" class="headerlink" title="supervisor mode"></a>supervisor mode</h3><p>进入管理模式。这将导致程序计数器（PC）的值更改为<code>main</code>(<strong>kernel/main.c</strong>:11)函数地址。在<code>main</code> 初始化几个设备和子系统后，便通过调用<code>userinit</code> (<strong>kernel/proc.c</strong>:212)创建第一个进程，第一个进程执行一个用 RISC-V 程序集写的小型程序：<strong>initcode. S</strong> (**user/initcode.S:**1)，它通过调用<code>exec</code>系统调用重新进入内核。</p>
 <p><code>exec</code>用一个新程序（如 <code>/init</code>）替换当前进程的内存和寄存器。一旦内核完成<code>exec</code>，它就返回<code>/init</code>进程中的用户空间。如果需要，<code>init</code>(<strong>user/init.c</strong>:15)将创建一个新的控制台设备文件，然后以文件描述符0、1和2打开它。然后它在控制台上启动一个shell。系统就这样启动了。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>MIT-S081</p>
 ]]></content>
       <categories>
         <category>操作系统</category>
@@ -1267,6 +1307,30 @@
       <tags>
         <tag>os</tag>
         <tag>systemcall</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>操作系统页表</title>
+    <url>/page-table.html</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>页表是操作系统为每个进程提供自己私有地址和内存空间的机制。页表维护了虚拟地址与物理地址的映射，每个进程维护一个页表，描述每个进程的用户地址空间。</p>
+<h2 id="页表硬件"><a href="#页表硬件" class="headerlink" title="页表硬件"></a>页表硬件</h2><p>指令（用户和内核指令都包括）使用的是虚拟地址，而机器的物理内存是由物理地址索引的。页表硬件通过将每个虚拟地址映射到物理地址来为这两种地址建立联系。</p>
+<h3 id="mmu-硬件概述"><a href="#mmu-硬件概述" class="headerlink" title="mmu 硬件概述"></a>mmu 硬件概述</h3><p>XV6基于Sv39 RISC-V运行，只使用低 39bit，高 25bit 不使用。中间 27bit 索引页表条目（Page Table Entries/PTE），最多 2^27 个 PTE。每个 PTE 包含一个 44bit 的物理页码（Physical Page Number/PPN）和一些标志 Flags。低 12bit 是物理地址偏移量。PPN+Offset 组成物理地址。简化地址映射如下</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202201051158288.png" alt="img"></p>
+<h3 id="page-table-地址什么维护？"><a href="#page-table-地址什么维护？" class="headerlink" title="page table 地址什么维护？"></a>page table 地址什么维护？</h3><p>satp 寄存器保存进程的起始地址，指向该进程 Page table 的物理地址。进程切换时，satp 会变</p>
+<h3 id="完整的地址映射"><a href="#完整的地址映射" class="headerlink" title="完整的地址映射"></a>完整的地址映射</h3><p>实际的转换分三个步骤进行。页表以三级的树型结构存储在物理内存中。该树的根是一个4096字节的页表页，其中包含512个PTE，其中包含该树下一级页表页的物理地址。这些页中的每一个都包含该树最后一级的512个PTE（也就是说每个PTE占8个字节，只使用前54bit，正如图3.2最下面所描绘的）。分页硬件使用27位中的前9位在根页表页面中选择PTE，中间9位在树的下一级页表页面中选择PTE，最后9位选择最终的PTE。</p>
+<p>红色箭头：satp 指向 L2 页 PA（physical address），L2 页 PPN 指向 L1 页 PA，L1 页 PPN 指向 L0 页 PA。L0 页 PPN + Offset = 物理内存 PA 。</p>
+<p>蓝色箭头：VA 中的 L2 索引 L2 页的 PTE，L1 索引 L1 页的 PTE。L0 索引 L0 页的 PT</p>
+<p>PTE：页表项，64bit，低 10bit 用于权限控制等标志位，中间 44bit PPN 指向下一页 PA</p>
+<p>三级页作用：减少内存占用，索引效率会变低。TLB（translation lock-aside buffer）缓存 VA 到 PA 的映射</p>
+<p><img data-src="https://cdn.jsdelivr.net/gh/zhouxinghang/resources/Zblog/202201051206323.png" alt="img"></p>
+<h3 id="page-table-初始化流程"><a href="#page-table-初始化流程" class="headerlink" title="page table 初始化流程"></a>page table 初始化流程</h3><p>利用恒等映射原因，page table 初始化前后，内核不变动</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>MIT-S081</p>
+]]></content>
+      <categories>
+        <category>操作系统</category>
+      </categories>
+      <tags>
+        <tag>os，pagetable</tag>
       </tags>
   </entry>
   <entry>
@@ -1461,6 +1525,22 @@
       </tags>
   </entry>
   <entry>
+    <title>红白机游戏文件如何做到这么小</title>
+    <url>/why-NES-file-so-small.html</url>
+    <content><![CDATA[<p>汇编语言编写</p>
+<p>美术和音乐资源都实现了复用，多次压缩，实时渲染</p>
+<p>保存了音频文件相关的数据序列，随着游戏的运行，实时演奏的。</p>
+<p>玩家在玩游戏的时候，卷轴经过的地方在<a href="https://www.zhihu.com/search?q=%E6%98%BE%E5%AD%98&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22:%22answer%22,%22sourceId%22:185449257%7D">显存</a>中被绘制，经过以后，前边的地方在显存中就释放掉了</p>
+<p>超级马里奥中的砖块，云朵，小怪都只是占用了一份内存。更离谱的是，只保存了物体的一半，比如蘑菇，只保存蘑菇的一半数据，渲染的时候做了镜像处理。</p>
+]]></content>
+      <categories>
+        <category>问答</category>
+      </categories>
+      <tags>
+        <tag>红白机</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Unix socket 与 TCP/IP socket 的区别</title>
     <url>/unix-socket-and-tcp-ip-socket.html</url>
     <content><![CDATA[<h2 id="Unix-socket"><a href="#Unix-socket" class="headerlink" title="Unix socket"></a>Unix socket</h2><p>又叫 IPC（inter-process communication 进程间通信） socket，用于实现同一主机上的进程间通信。通过监听 path（Unix 文件系统路径） 而不是 port。直接将应用层数据从一个进程拷贝到另一个进程，不需要经过网络层（检查、路由等），因此比 IP socket 效率更高。</p>
@@ -1478,22 +1558,6 @@
       <tags>
         <tag>socket</tag>
         <tag>tcp</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>红白机游戏文件如何做到这么小</title>
-    <url>/why-NES-file-so-small.html</url>
-    <content><![CDATA[<p>汇编语言编写</p>
-<p>美术和音乐资源都实现了复用，多次压缩，实时渲染</p>
-<p>保存了音频文件相关的数据序列，随着游戏的运行，实时演奏的。</p>
-<p>玩家在玩游戏的时候，卷轴经过的地方在<a href="https://www.zhihu.com/search?q=%E6%98%BE%E5%AD%98&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22:%22answer%22,%22sourceId%22:185449257%7D">显存</a>中被绘制，经过以后，前边的地方在显存中就释放掉了</p>
-<p>超级马里奥中的砖块，云朵，小怪都只是占用了一份内存。更离谱的是，只保存了物体的一半，比如蘑菇，只保存蘑菇的一半数据，渲染的时候做了镜像处理。</p>
-]]></content>
-      <categories>
-        <category>问答</category>
-      </categories>
-      <tags>
-        <tag>红白机</tag>
       </tags>
   </entry>
   <entry>
