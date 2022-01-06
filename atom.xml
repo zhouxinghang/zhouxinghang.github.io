@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2022-01-05T09:32:29.908Z</updated>
+  <updated>2022-01-06T03:55:36.453Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -21,7 +21,7 @@
     <link href="https://tig.red/kafka-best-practices.html"/>
     <id>https://tig.red/kafka-best-practices.html</id>
     <published>2022-01-05T08:18:08.000Z</published>
-    <updated>2022-01-05T09:32:29.908Z</updated>
+    <updated>2022-01-06T03:55:36.453Z</updated>
     
     
     <summary type="html">kafka 重要参数 ascks retries 使用。rebalance 规避策略</summary>

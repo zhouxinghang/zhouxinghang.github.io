@@ -2,14 +2,14 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://tig.red/about/index.html</loc>
+    <loc>https://tig.red/kafka-best-practices.html</loc>
     
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     
   </url>
   
   <url>
-    <loc>https://tig.red/kafka-best-practices.html</loc>
+    <loc>https://tig.red/about/index.html</loc>
     
     <lastmod>2022-01-05</lastmod>
     
@@ -235,7 +235,7 @@
 
   <url>
     <loc>https://tig.red/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -243,280 +243,280 @@
   
   <url>
     <loc>https://tig.red/tags/AQS/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/%E6%BA%90%E7%A0%81/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/caffeine/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/java%E8%BF%9B%E9%98%B6/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/ddd/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/disruptor/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/javaWeb/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/docker/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/druid/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/hive/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/java/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/hexo/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/Http/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/HttpClient/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/jvm/</loc>
-    <lastmod>2022-01-05</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/lock/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/jmm/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/lock/</loc>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/kafka/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/log4j/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/rce/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/mac/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/ntfs/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/nginx/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/os/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/systemcall/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/os%EF%BC%8Cpagetable/</loc>
-    <lastmod>2022-01-05</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/protobuf/</loc>
-    <lastmod>2022-01-05</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/proto/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/reactor/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/nio/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/netty/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/protobuf/</loc>
+    <lastmod>2022-01-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/proto/</loc>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/spring/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/threadlocal/</loc>
-    <lastmod>2022-01-05</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/socket/</loc>
-    <lastmod>2022-01-05</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/tags/tcp/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/%E7%BA%A2%E7%99%BD%E6%9C%BA/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/socket/</loc>
+    <lastmod>2022-01-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/tags/tcp/</loc>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/tags/synchronized/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
@@ -525,91 +525,91 @@
   
   <url>
     <loc>https://tig.red/categories/java/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/javaWeb/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/java%E8%BF%9B%E9%98%B6/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/101/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E5%BC%82%E5%B8%B8%E6%8E%92%E6%9F%A5/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/</loc>
-    <lastmod>2022-01-05</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E9%97%AE%E7%AD%94/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://tig.red/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/</loc>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://tig.red/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/</loc>
-    <lastmod>2022-01-05</lastmod>
+    <lastmod>2022-01-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
