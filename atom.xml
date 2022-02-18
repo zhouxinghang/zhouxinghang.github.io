@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2022-01-06T03:55:36.453Z</updated>
+  <updated>2022-02-18T02:19:12.535Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -15,6 +15,23 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>红黑树原理</title>
+    <link href="https://tig.red/red-black-tree.html"/>
+    <id>https://tig.red/red-black-tree.html</id>
+    <published>2022-02-18T01:37:41.000Z</published>
+    <updated>2022-02-18T02:19:12.535Z</updated>
+    
+    
+    <summary type="html">红黑树是一种特殊的二叉搜索树，由 2-3-4 树演变而来，理解 2-3-4 树就能理解红黑树</summary>
+    
+    
+    
+    
+    <category term="红黑树" scheme="https://tig.red/tags/%E7%BA%A2%E9%BB%91%E6%A0%91/"/>
+    
+  </entry>
   
   <entry>
     <title>kafka最佳实践</title>
@@ -40,7 +57,7 @@
     <link href="https://tig.red/page-table.html"/>
     <id>https://tig.red/page-table.html</id>
     <published>2022-01-05T03:44:30.000Z</published>
-    <updated>2022-01-05T08:18:52.294Z</updated>
+    <updated>2022-01-10T13:00:07.264Z</updated>
     
     
       
@@ -434,29 +451,6 @@
     <category term="javaWeb" scheme="https://tig.red/tags/javaWeb/"/>
     
     <category term="docker" scheme="https://tig.red/tags/docker/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>jvm参数</title>
-    <link href="https://tig.red/jvm-options.html"/>
-    <id>https://tig.red/jvm-options.html</id>
-    <published>2019-04-06T13:15:55.000Z</published>
-    <updated>2021-11-26T03:08:08.000Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;X-与-XX-的区别&quot;&gt;&lt;a href=&quot;#X-与-XX-的区别&quot; class=&quot;headerlink&quot; title=&quot;-X 与 -XX 的区别&quot;&gt;&lt;/a&gt;-X 与 -XX 的区别&lt;/h2&gt;&lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;Standard options&lt;/strong&gt; :Options that begin with - are Standard options are expected to be accepted by all JVM implementations and are stable between releases (though they can be deprecated).&lt;br&gt;&lt;strong&gt;Non-standard options&lt;/strong&gt; :Options that begin with -X are non-standard (not guaranteed to be supported on all JVM implementations), and are subject to change without notice in subsequent releases of the Java SDK.&lt;br&gt;&lt;strong&gt;Developer options&lt;/strong&gt; :Options that begin with -XX are developer options and often have specific system requirements for correct operation and may require privileged access to system configuration parameters; they are not recommended for casual use. These options are also subject to change without notice.&lt;/p&gt;
-&lt;/blockquote&gt;</summary>
-    
-    
-    
-    <category term="java" scheme="https://tig.red/categories/java/"/>
-    
-    
-    <category term="java" scheme="https://tig.red/tags/java/"/>
-    
-    <category term="jvm" scheme="https://tig.red/tags/jvm/"/>
     
   </entry>
   
