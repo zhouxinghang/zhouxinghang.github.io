@@ -6,7 +6,7 @@
   <link href="https://tig.red/atom.xml" rel="self"/>
   
   <link href="https://tig.red/"/>
-  <updated>2022-02-18T02:19:12.535Z</updated>
+  <updated>2023-03-17T03:24:51.227Z</updated>
   <id>https://tig.red/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Quarkus框架介绍</title>
+    <link href="https://tig.red/quarkus-overview.html"/>
+    <id>https://tig.red/quarkus-overview.html</id>
+    <published>2022-11-10T08:11:05.000Z</published>
+    <updated>2023-03-17T03:24:51.227Z</updated>
+    
+    
+    <summary type="html">Quarkus 是一种用于构建云原生应用的 Java 框架，它被设计成轻量级、快速启动和内存占用小，适合构建服务器端和云原生应用程序。使用GraalVM技术，将java代码转换为本机二进制，从而实现更高的执行速度和更小的应用程序体积。支持开箱即用的k8s部署，支持 Kotlin 和 Scala。</summary>
+    
+    
+    
+    <category term="框架" scheme="https://tig.red/categories/%E6%A1%86%E6%9E%B6/"/>
+    
+    
+    <category term="Quarkus" scheme="https://tig.red/tags/Quarkus/"/>
+    
+    <category term="GraalVM" scheme="https://tig.red/tags/GraalVM/"/>
+    
+    <category term="AOT" scheme="https://tig.red/tags/AOT/"/>
+    
+    <category term="JIT" scheme="https://tig.red/tags/JIT/"/>
+    
+  </entry>
   
   <entry>
     <title>红黑树原理</title>
@@ -302,9 +327,9 @@
     <category term="java" scheme="https://tig.red/categories/java/"/>
     
     
-    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
-    
     <category term="源码" scheme="https://tig.red/tags/%E6%BA%90%E7%A0%81/"/>
+    
+    <category term="AQS" scheme="https://tig.red/tags/AQS/"/>
     
   </entry>
   
@@ -430,27 +455,6 @@
     <category term="mac" scheme="https://tig.red/tags/mac/"/>
     
     <category term="ntfs" scheme="https://tig.red/tags/ntfs/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>docker基础</title>
-    <link href="https://tig.red/docker-base.html"/>
-    <id>https://tig.red/docker-base.html</id>
-    <published>2019-04-09T12:59:33.000Z</published>
-    <updated>2021-11-26T03:16:33.000Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;Docker-简介&quot;&gt;&lt;a href=&quot;#Docker-简介&quot; class=&quot;headerlink&quot; title=&quot;Docker 简介&quot;&gt;&lt;/a&gt;Docker 简介&lt;/h2&gt;&lt;h3 id=&quot;什么是-Docker&quot;&gt;&lt;a href=&quot;#什么是-Docker&quot; class=&quot;headerlink&quot; title=&quot;什么是 Docker&quot;&gt;&lt;/a&gt;什么是 Docker&lt;/h3&gt;&lt;p&gt;Docker 是 dotCloud 公司创立，go 语言编写，基于 Ubuntu 开发。基于 Linux 内核的 cgroup，namespace，以及 AUFS 类的 Union FS 等技术，对进程进行封装隔离，属于&lt;strong&gt;操作系统层面的虚拟化技术&lt;/strong&gt;。隔离的进程独立于宿主和隔离的其他进程，也其曾为容器。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="服务容器" scheme="https://tig.red/categories/%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8/"/>
-    
-    
-    <category term="javaWeb" scheme="https://tig.red/tags/javaWeb/"/>
-    
-    <category term="docker" scheme="https://tig.red/tags/docker/"/>
     
   </entry>
   
